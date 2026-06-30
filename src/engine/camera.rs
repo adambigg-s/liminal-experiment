@@ -2,7 +2,7 @@ use std::f32;
 use std::fmt::Display;
 use std::fmt::{self};
 
-use glam::camera::rh::proj::vulkan;
+use glam::camera::rh::proj::directx;
 
 use crate::engine::transform;
 use crate::render;
@@ -53,7 +53,8 @@ impl Camera
      pub fn proj(&self) -> glam::Mat4
      {
           // glam::Mat4::perspective_rh(self.fov.to_radians(), self.ar, self.znear, self.zfear)
-          vulkan::perspective(self.fov.to_radians(), self.ar, self.znear, self.zfear)
+          // vulkan::perspective(self.fov.to_radians(), self.ar, self.znear, self.zfear)
+          directx::perspective(self.fov.to_radians(), self.ar, self.znear, self.zfear)
      }
 }
 

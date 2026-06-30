@@ -1,12 +1,15 @@
 use std::mem;
 
 use crate::application;
+use crate::engine;
+use crate::engine::camera;
+use crate::engine::kinematics;
+use crate::engine::player;
 use crate::render;
+use crate::render::GfxCamera;
 use crate::render::resource;
 use crate::render::util;
 use crate::visual::pipelines;
-
-pub struct Liminal {}
 
 #[repr(C)]
 #[derive(bytemuck::Pod, bytemuck::Zeroable, bon::Builder, Debug, Default, Clone, Copy)]
@@ -24,12 +27,21 @@ impl render::GfxVertex for TriVertex
                0 => Float32x3,
                1 => Float32x3,
           ];
+
           wgpu::VertexBufferLayout {
                array_stride: mem::size_of::<Self>() as u64,
                step_mode: wgpu::VertexStepMode::Vertex,
                attributes: ATTRIBS,
           }
      }
+}
+
+#[derive(bon::Builder, Debug)]
+pub struct Liminal
+{
+     pub camera: camera::Camera,
+     pub player: player::PlayerController,
+     pub frame: engine::FrameData,
 }
 
 impl application::Application for Liminal
@@ -63,15 +75,15 @@ impl application::Application for Liminal
                     gfx_context,
                     &[
                          TriVertex {
-                              pos: [-0.5f32, -0.5, 0.0],
+                              pos: [-0.5f32, -0.5, 1.0],
                               col: [1.0, 0.0, 0.0],
                          },
                          TriVertex {
-                              pos: [0.5, -0.5, 0.0],
+                              pos: [0.5, -0.5, 1.0],
                               col: [0.0, 1.0, 0.0],
                          },
                          TriVertex {
-                              pos: [0.0, 0.5, 0.0],
+                              pos: [0.0, 0.5, 1.0],
                               col: [0.0, 0.0, 1.0],
                          },
                     ],
@@ -79,7 +91,25 @@ impl application::Application for Liminal
                ),
           );
 
-          Ok(Self {})
+          let camera = camera::Camera::builder()
+               .ar(gfx_context.config.width as f32 / gfx_context.config.height as f32)
+               .fov(90f32)
+               .znear(0.1)
+               .zfear(500.0)
+               .build();
+          let player = player::PlayerController::builder()
+               .lookspeed(0.0025)
+               .movespeed(2.0)
+               .kinematics(kinematics::Kinematics::builder().up(glam::Vec3::Y).build())
+               .collider(kinematics::BoxCollider::new([0.0; 3], [0.0; 3]))
+               .build();
+          let frame = engine::FrameData::new();
+
+          Ok(Self {
+               camera,
+               player,
+               frame,
+          })
      }
 
      fn physics_frame(
@@ -89,10 +119,41 @@ impl application::Application for Liminal
           gfx_render: &crate::render::GfxRenderer,
      )
      {
+          self.frame.update();
+
           if input.get_key_pres("escape")
           {
                input.request_quit = !input.request_quit;
           }
+
+          let mut movement = glam::IVec3::ZERO;
+          if input.get_key_pres("keyw")
+          {
+               movement.z += 1;
+          }
+          if input.get_key_pres("keys")
+          {
+               movement.z -= 1;
+          }
+          if input.get_key_pres("keyd")
+          {
+               movement.x += 1;
+          }
+          if input.get_key_pres("keya")
+          {
+               movement.x -= 1;
+          }
+          let movement = movement.as_vec3() * self.player.movespeed * self.frame.dt;
+          self.camera.update_position(movement.x, movement.y, movement.z);
+
+          let [mut dy, mut dx] = input.consume_mouse_delta().into();
+          [dy, dx] = (glam::vec2(dy, dx) * self.player.lookspeed).to_array();
+          self.camera.yaw -= dy;
+          self.camera.pitch -= dx;
+          self.camera.confine_euler();
+          self.camera.inner.rotation = glam::Quat::from_rotation_z(0.0)
+               * glam::Quat::from_rotation_y(self.camera.yaw)
+               * glam::Quat::from_rotation_x(self.camera.pitch);
      }
 
      fn gfx_frame(
@@ -102,6 +163,11 @@ impl application::Application for Liminal
           gfx_render: &mut crate::render::GfxRenderer,
      )
      {
+          if let Some(resource::GfxResource::Uniform(camera_uni)) = gfx_render.resources.get("camera_uni")
+          {
+               camera_uni.write(gfx_context, &self.camera.view_proj());
+          }
+
           gfx_render.queue(render::GfxDrawCall {
                mesh: "testing_mesh".into(),
                pipe: "terrain_pipe".into(),
