@@ -255,7 +255,7 @@ impl ChunkManager
      {
           glam::ivec3(
                (center.x / self.chunk_width as f32).floor() as i32,
-               0,
+               (center.y / self.chunk_height as f32).floor() as i32,
                (center.z / self.chunk_width as f32).floor() as i32,
           )
      }
@@ -291,9 +291,17 @@ impl ChunkManager
 
                self.advance_chunk(coord);
 
-               for (dx, dz) in neighbors::von_neumann2()
+               // for (dx, dz) in neighbors::von_neumann2()
+               // {
+               //      let neighbor = coord + glam::ivec3(dx, 0, dz);
+               //      if visited.insert(neighbor)
+               //      {
+               //           queue.push_front(neighbor);
+               //      }
+               // }
+               for (dx, dy, dz) in neighbors::von_neumann3()
                {
-                    let neighbor = coord + glam::ivec3(dx, 0, dz);
+                    let neighbor = coord + glam::ivec3(dx, dy, dz);
                     if visited.insert(neighbor)
                     {
                          queue.push_front(neighbor);

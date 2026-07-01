@@ -46,7 +46,7 @@ impl application::Application for Liminal
                .build();
           let player = player::PlayerController::builder()
                .lookspeed(0.0025)
-               .movespeed(2.0)
+               .movespeed(20.0)
                .kinematics(kinematics::Kinematics::builder().up(glam::Vec3::Y).build())
                .collider(kinematics::BoxCollider::new([0.0; 3], [0.0; 3]))
                .build();
@@ -58,9 +58,9 @@ impl application::Application for Liminal
           let mut world = manager::ChunkManager::builder()
                .atlas(sync::Arc::clone(&atlas))
                .terrain(sync::Arc::new(terrain))
-               .view_distance(4)
-               .chunk_height(32)
-               .chunk_width(32)
+               .view_distance(5)
+               .chunk_height(16)
+               .chunk_width(16)
                .build();
           world.spawn_workers(1);
 
@@ -143,6 +143,14 @@ impl application::Application for Liminal
           {
                movement.x -= 1;
           }
+          if input.get_key_pres("space")
+          {
+               movement.y += 1;
+          }
+          if input.get_key_pres("shiftleft")
+          {
+               movement.y -= 1;
+          }
           let movement = movement.as_vec3() * self.player.movespeed * self.frame.dt;
           self.camera.update_position(movement.x, movement.y, movement.z);
 
@@ -155,44 +163,44 @@ impl application::Application for Liminal
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
 
-          log::info!("{}", self.camera); }
+          log::info!("{}", self.camera);
+     }
 
      fn gfx_frame(
           &mut self,
           _: &input::Input,
-          gfx_context: &mut render::GfxContext,
-          gfx_render: &mut render::GfxRenderer,
+          context: &mut render::GfxContext,
+          render: &mut render::GfxRenderer,
      )
      {
+          self.camera.ar = context.config.width as f32 / context.config.height as f32;
           if let Some(resource::GfxResource::Uniform(camera_uni)) =
-               gfx_render.resources.get("camera_view_proj_uni")
+               render.resources.get("camera_view_proj_uni")
           {
-               camera_uni.write(gfx_context, &self.camera.view_proj());
+               camera_uni.write(context, &self.camera.view_proj());
           }
           else
           {
                panic!();
           };
           if let Some(resource::GfxResource::Uniform(camera_view_uni)) =
-               gfx_render.resources.get("camera_view_uni")
+               render.resources.get("camera_view_uni")
           {
-               camera_view_uni.write(gfx_context, &self.camera.view());
+               camera_view_uni.write(context, &self.camera.view());
           }
           else
           {
                panic!();
           }
 
-          self.world.sync_gfx_chunks(gfx_context, gfx_render);
+          self.world.sync_gfx_chunks(context, render);
 
           self.world.render_chunks.iter().for_each(|&chunk_coord| {
-               gfx_render.queue(render::GfxDrawCall {
+               render.queue(render::GfxDrawCall {
                     mesh: manager::ChunkManager::chunk_key(chunk_coord),
                     pipe: "terrain_pipe".into(),
                     bind_groups: vec!["global_bg".into()],
                });
           });
-
-          log::info!("number of draw calls: {}", self.world.render_chunks.len());
      }
 }

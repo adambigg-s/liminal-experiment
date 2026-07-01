@@ -31,12 +31,14 @@ pub enum Block
      Air,
      Plain,
      Light,
+     Distressed1,
      BlockCounter,
 }
 
 impl Block
 {
-     const ALL: [Block; Block::BlockCounter as usize] = [Block::Air, Block::Plain, Block::Light];
+     const ALL: [Block; Block::BlockCounter as usize] =
+          [Block::Air, Block::Plain, Block::Light, Block::Distressed1];
      const EMPTY: Block = Block::Air;
 
      pub fn empty() -> Self
@@ -56,6 +58,7 @@ impl Block
                | Block::Air => "air",
                | Block::Plain => "plain",
                | Block::Light => "light",
+               | Block::Distressed1 => "distressed1",
                | Block::BlockCounter => "",
           }
      }

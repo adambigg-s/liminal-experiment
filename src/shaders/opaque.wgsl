@@ -46,8 +46,9 @@ fn fs_main(in: VertexOut) -> FragmentOutput {
     var out: FragmentOutput;
 
     let diffuse_color = textureSample(texture_atlas, sample_atlas, in.tex);
+    let depth = length(in.world_pos.xyz);
 
-    out.depth = length(in.world_pos.xyz);
+    out.depth = in.pos.z;
     out.color = diffuse_color;
 
     return out;

@@ -1,3 +1,4 @@
+use crate::engine::neighbors;
 use crate::world::block;
 use crate::world::chunk;
 use crate::world::delta;
@@ -15,10 +16,13 @@ impl TerrainGenerator
                {
                     for k in 0 .. chunk.width() as i32
                     {
-                         let block = block::Block::random();
-                         if rand::random_bool(0.1)
+                         let coord = glam::ivec3(i, j, k);
+                         if neighbors::von_neumann3().iter().any(|&(dx, dy, dz)| {
+                              let neighbor_coord = coord + glam::ivec3(dx, dy, dz);
+                              !chunk.check_index(neighbor_coord)
+                         })
                          {
-                              *chunk.get_mut(glam::ivec3(i, j, k)) = block;
+                              *chunk.get_mut(coord) = block::Block::random()
                          }
                     }
                }
