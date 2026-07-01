@@ -29,54 +29,14 @@ pub enum Block
 {
      #[default]
      Air,
-     Dirt,
-     Grass,
-     Sand,
-     Water,
-     Lava,
-     Log,
-     Leaf,
-     Stone,
-     Gravel,
-     Plank,
-     Quartz,
-     RedFlower,
-     BlueFlower,
-     Shrub,
-     Coal,
-     Copper,
-     Tin,
-     Glass,
+     Plain,
      Light,
-     Torch,
      BlockCounter,
 }
 
 impl Block
 {
-     const ALL: [Block; Block::BlockCounter as usize] = [
-          Block::Air,
-          Block::Dirt,
-          Block::Grass,
-          Block::Sand,
-          Block::Water,
-          Block::Lava,
-          Block::Log,
-          Block::Leaf,
-          Block::Stone,
-          Block::Gravel,
-          Block::Plank,
-          Block::Quartz,
-          Block::RedFlower,
-          Block::BlueFlower,
-          Block::Shrub,
-          Block::Coal,
-          Block::Copper,
-          Block::Tin,
-          Block::Glass,
-          Block::Light,
-          Block::Torch,
-     ];
+     const ALL: [Block; Block::BlockCounter as usize] = [Block::Air, Block::Plain, Block::Light];
      const EMPTY: Block = Block::Air;
 
      pub fn empty() -> Self
@@ -94,26 +54,8 @@ impl Block
           match self
           {
                | Block::Air => "air",
-               | Block::Dirt => "dirt",
-               | Block::Grass => "grass",
-               | Block::Sand => "sand",
-               | Block::Water => "water",
-               | Block::Lava => "lava",
-               | Block::Log => "log",
-               | Block::Leaf => "leaf",
-               | Block::Stone => "stone",
-               | Block::Gravel => "gravel",
-               | Block::Plank => "plank",
-               | Block::Quartz => "quartz",
-               | Block::RedFlower => "redflower",
-               | Block::BlueFlower => "blueflower",
-               | Block::Shrub => "shrub",
-               | Block::Coal => "coal",
-               | Block::Copper => "copper",
-               | Block::Tin => "tin",
-               | Block::Glass => "glass",
+               | Block::Plain => "plain",
                | Block::Light => "light",
-               | Block::Torch => "torch",
                | Block::BlockCounter => "",
           }
      }
@@ -124,14 +66,6 @@ impl Block
           {
                | Block::Air => light::Light::new(0),
                | Block::Light => light::Light::new(0),
-               | Block::Torch => light::Light::new(0),
-               | Block::Shrub => light::Light::new(0),
-               | Block::Glass => light::Light::new(0),
-               | Block::RedFlower => light::Light::new(0),
-               | Block::BlueFlower => light::Light::new(0),
-               | Block::Water => light::Light::new(2),
-               | Block::Leaf => light::Light::new(4),
-               | Block::Lava => light::Light::new(5),
                | _ => light::Light::max_light(),
           }
      }
@@ -140,14 +74,7 @@ impl Block
      {
           match self
           {
-               | Block::Leaf
-               | Block::RedFlower
-               | Block::BlueFlower
-               | Block::Shrub
-               | Block::Glass
-               | Block::Torch => Visibility::PartialOpaque,
                | Block::Air => Visibility::Invisible,
-               | Block::Water => Visibility::Transparent,
                | _ => Visibility::Opaque,
           }
      }
@@ -156,9 +83,7 @@ impl Block
      {
           match self
           {
-               | Block::Lava => Some(light::Light::max_light()),
                | Block::Light => Some(light::Light::max_light()),
-               | Block::Torch => Some(light::Light::max_light()),
                | _ => None,
           }
      }
@@ -167,7 +92,6 @@ impl Block
      {
           match self
           {
-               | Block::RedFlower | Block::BlueFlower | Block::Shrub | Block::Torch => EmittedMesh::Decorator,
                | _ => EmittedMesh::RectilinearFull,
           }
      }

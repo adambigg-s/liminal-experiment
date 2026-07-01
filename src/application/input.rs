@@ -7,9 +7,9 @@ use winit::keyboard;
 pub enum MouseMode
 {
      #[default]
+     None,
      Grab,
      Free,
-     None,
 }
 
 impl MouseMode
@@ -19,8 +19,8 @@ impl MouseMode
           match self
           {
                | MouseMode::Grab => MouseMode::Free,
-               | MouseMode::Free => MouseMode::None,
                | MouseMode::None => MouseMode::Grab,
+               | MouseMode::Free => MouseMode::None,
           }
      }
 }

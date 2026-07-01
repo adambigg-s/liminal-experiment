@@ -195,14 +195,7 @@ impl kinematics::Collision for block::Block
      {
           match self
           {
-               | block::Block::Air
-               | block::Block::Water
-               | block::Block::RedFlower
-               | block::Block::BlueFlower
-               | block::Block::Shrub
-               | block::Block::Torch
-               | block::Block::Lava => false,
-
+               | block::Block::Air => false,
                | _ => true,
           }
      }

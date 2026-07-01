@@ -4,7 +4,6 @@ use std::sync;
 
 use crate::engine::neighbors;
 use crate::world;
-use crate::world::block;
 use crate::world::chunk;
 use crate::world::delta;
 

@@ -1,8 +1,8 @@
 use std::fs;
 
-use crate::liminal;
 use crate::render::GfxVertex;
 use crate::render::{self};
+use crate::visual::mesher;
 
 pub struct Opaque;
 impl render::GfxPipeline for Opaque
@@ -32,7 +32,7 @@ impl render::GfxPipeline for Opaque
                     module: &shader,
                     entry_point: Some("vs_main"),
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
-                    buffers: &[liminal::TriVertex::descriptor()],
+                    buffers: &[mesher::TerrainVertex::descriptor()],
                },
                primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList,

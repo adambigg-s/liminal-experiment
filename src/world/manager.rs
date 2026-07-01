@@ -9,7 +9,6 @@ use rustc_hash as rh;
 use crate::engine::neighbors;
 use crate::render;
 use crate::render::mesh;
-use crate::render::util;
 use crate::terrain;
 use crate::visual::atlas;
 use crate::visual::light;
@@ -167,18 +166,18 @@ impl ChunkManager
                let gfx_mesh = mesh::GfxMesh::new(context, &raw_mesh.vertices, &raw_mesh.indices);
                let name = Self::chunk_key(raw_mesh.offset);
                render.register_mesh(&name, gfx_mesh);
-               render.register_resource(
-                    &format!("{}_time_uni", name),
-                    util::uniform::<f32>(context, "Timer uniform"),
-               );
-               render
-                    .register_bind_group(
-                         context,
-                         &format!("{}_time_bg", Self::chunk_key(raw_mesh.offset)),
-                         "time_layout",
-                         &[&format!("{}_time_uni", name)],
-                    )
-                    .unwrap();
+               // render.register_resource(
+               //      &format!("{}_time_uni", name),
+               //      util::uniform::<f32>(context, "Timer uniform"),
+               // );
+               // render
+               //      .register_bind_group(
+               //           context,
+               //           &format!("{}_time_bg", Self::chunk_key(raw_mesh.offset)),
+               //           "time_layout",
+               //           &[&format!("{}_time_uni", name)],
+               //      )
+               //      .unwrap();
                self.render_chunks.insert(raw_mesh.offset);
           });
 
@@ -186,8 +185,8 @@ impl ChunkManager
                let name = Self::chunk_key(chunk_coord);
                self.render_chunks.remove(&chunk_coord);
                render.unregister_mesh(&name);
-               render.unregister_resource(&format!("{}_time_uni", name));
-               render.unregister_bind_group(&format!("{}_time_bg", name));
+               // render.unregister_resource(&format!("{}_time_uni", name));
+               // render.unregister_bind_group(&format!("{}_time_bg", name));
           });
      }
 

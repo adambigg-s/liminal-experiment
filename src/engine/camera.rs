@@ -52,8 +52,6 @@ impl Camera
 
      pub fn proj(&self) -> glam::Mat4
      {
-          // glam::Mat4::perspective_rh(self.fov.to_radians(), self.ar, self.znear, self.zfear)
-          // vulkan::perspective(self.fov.to_radians(), self.ar, self.znear, self.zfear)
           directx::perspective(self.fov.to_radians(), self.ar, self.znear, self.zfear)
      }
 }

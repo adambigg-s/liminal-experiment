@@ -1,6 +1,7 @@
-use std::mem;
+use std::sync;
 
 use crate::application;
+use crate::application::input;
 use crate::engine;
 use crate::engine::camera;
 use crate::engine::kinematics;
@@ -9,32 +10,10 @@ use crate::render;
 use crate::render::GfxCamera;
 use crate::render::resource;
 use crate::render::util;
+use crate::terrain;
+use crate::visual::atlas;
 use crate::visual::pipelines;
-
-#[repr(C)]
-#[derive(bytemuck::Pod, bytemuck::Zeroable, bon::Builder, Debug, Default, Clone, Copy)]
-pub struct TriVertex
-{
-     pub pos: [f32; 3],
-     pub col: [f32; 3],
-}
-
-impl render::GfxVertex for TriVertex
-{
-     fn descriptor() -> wgpu::VertexBufferLayout<'static>
-     {
-          const ATTRIBS: &[wgpu::VertexAttribute] = &wgpu::vertex_attr_array![
-               0 => Float32x3,
-               1 => Float32x3,
-          ];
-
-          wgpu::VertexBufferLayout {
-               array_stride: mem::size_of::<Self>() as u64,
-               step_mode: wgpu::VertexStepMode::Vertex,
-               attributes: ATTRIBS,
-          }
-     }
-}
+use crate::world::manager;
 
 #[derive(bon::Builder, Debug)]
 pub struct Liminal
@@ -42,6 +21,8 @@ pub struct Liminal
      pub camera: camera::Camera,
      pub player: player::PlayerController,
      pub frame: engine::FrameData,
+
+     pub world: manager::ChunkManager,
 }
 
 impl application::Application for Liminal
@@ -55,44 +36,10 @@ impl application::Application for Liminal
                .build()
      }
 
-     fn setup(
-          gfx_context: &mut crate::render::GfxContext,
-          gfx_render: &mut crate::render::GfxRenderer,
-     ) -> anyhow::Result<Self>
+     fn setup(context: &mut render::GfxContext, render: &mut render::GfxRenderer) -> anyhow::Result<Self>
      {
-          gfx_render
-               .register_resource("camera_uni", util::uniform::<glam::Mat4>(gfx_context, "Camera uniform"));
-          gfx_render.register_bind_group_layout(
-               gfx_context,
-               "global_layout",
-               &[resource::GfxBindingLayout::Uniform],
-          )?;
-          gfx_render.register_bind_group(gfx_context, "global_bg", "global_layout", &["camera_uni"])?;
-          gfx_render.register_pipeline::<pipelines::Opaque>(gfx_context, "terrain_pipe", &["global_layout"]);
-          gfx_render.register_mesh(
-               "testing_mesh",
-               util::mesh(
-                    gfx_context,
-                    &[
-                         TriVertex {
-                              pos: [-0.5f32, -0.5, 1.0],
-                              col: [1.0, 0.0, 0.0],
-                         },
-                         TriVertex {
-                              pos: [0.5, -0.5, 1.0],
-                              col: [0.0, 1.0, 0.0],
-                         },
-                         TriVertex {
-                              pos: [0.0, 0.5, 1.0],
-                              col: [0.0, 0.0, 1.0],
-                         },
-                    ],
-                    &[0u32, 1, 2],
-               ),
-          );
-
           let camera = camera::Camera::builder()
-               .ar(gfx_context.config.width as f32 / gfx_context.config.height as f32)
+               .ar(context.config.width as f32 / context.config.height as f32)
                .fov(90f32)
                .znear(0.1)
                .zfear(500.0)
@@ -105,25 +52,78 @@ impl application::Application for Liminal
                .build();
           let frame = engine::FrameData::new();
 
+          let atlas = sync::Arc::new(atlas::TextureAtlas::new("./res/liminal/", 128)?);
+          atlas.save("./res/liminal_atlas.png")?;
+          let terrain = terrain::TerrainGenerator::builder().build();
+          let mut world = manager::ChunkManager::builder()
+               .atlas(sync::Arc::clone(&atlas))
+               .terrain(sync::Arc::new(terrain))
+               .view_distance(4)
+               .chunk_height(32)
+               .chunk_width(32)
+               .build();
+          world.spawn_workers(1);
+
+          render.register_bind_group_layout(
+               context,
+               "global_layout",
+               &[
+                    resource::GfxBindingLayout::Uniform,
+                    resource::GfxBindingLayout::Uniform,
+                    resource::GfxBindingLayout::Texture,
+                    resource::GfxBindingLayout::Sampler,
+               ],
+          )?;
+          render.register_pipeline::<pipelines::Opaque>(context, "terrain_pipe", &["global_layout"]);
+
+          render.register_resource(
+               "camera_view_proj_uni",
+               util::uniform::<glam::Mat4>(context, "Camera view-projection unioform"),
+          );
+          render.register_resource(
+               "camera_view_uni",
+               util::uniform::<glam::Mat4>(context, "Camera view uniform"),
+          );
+          render.register_resource(
+               "texture_atlas",
+               util::texture_image(context, &atlas.atlas, "Texture atlas"),
+          );
+          render.register_resource("texture_sampler", util::sampler(context, "Texture atlas sampler"));
+
+          render.register_bind_group(
+               context,
+               "global_bg",
+               "global_layout",
+               &[
+                    "camera_view_proj_uni",
+                    "camera_view_uni",
+                    "texture_atlas",
+                    "texture_sampler",
+               ],
+          )?;
+
           Ok(Self {
                camera,
                player,
                frame,
+
+               world,
           })
      }
 
-     fn physics_frame(
-          &mut self,
-          input: &mut application::input::Input,
-          gfx_context: &crate::render::GfxContext,
-          gfx_render: &crate::render::GfxRenderer,
-     )
+     fn physics_frame(&mut self, input: &mut input::Input, _: &render::GfxContext, _: &render::GfxRenderer)
      {
           self.frame.update();
 
-          if input.get_key_pres("escape")
+          self.world.update_chunks(self.camera.inner.position, self.frame.dt);
+
+          if input.consume_key_press("escape")
           {
                input.request_quit = !input.request_quit;
+          }
+          if input.consume_key_press("keyq")
+          {
+               input.request_grab = !input.request_grab;
           }
 
           let mut movement = glam::IVec3::ZERO;
@@ -154,24 +154,45 @@ impl application::Application for Liminal
           self.camera.inner.rotation = glam::Quat::from_rotation_z(0.0)
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
-     }
+
+          log::info!("{}", self.camera); }
 
      fn gfx_frame(
           &mut self,
-          input: &application::input::Input,
-          gfx_context: &mut crate::render::GfxContext,
-          gfx_render: &mut crate::render::GfxRenderer,
+          _: &input::Input,
+          gfx_context: &mut render::GfxContext,
+          gfx_render: &mut render::GfxRenderer,
      )
      {
-          if let Some(resource::GfxResource::Uniform(camera_uni)) = gfx_render.resources.get("camera_uni")
+          if let Some(resource::GfxResource::Uniform(camera_uni)) =
+               gfx_render.resources.get("camera_view_proj_uni")
           {
                camera_uni.write(gfx_context, &self.camera.view_proj());
           }
+          else
+          {
+               panic!();
+          };
+          if let Some(resource::GfxResource::Uniform(camera_view_uni)) =
+               gfx_render.resources.get("camera_view_uni")
+          {
+               camera_view_uni.write(gfx_context, &self.camera.view());
+          }
+          else
+          {
+               panic!();
+          }
 
-          gfx_render.queue(render::GfxDrawCall {
-               mesh: "testing_mesh".into(),
-               pipe: "terrain_pipe".into(),
-               bind_groups: vec!["global_bg".into()],
+          self.world.sync_gfx_chunks(gfx_context, gfx_render);
+
+          self.world.render_chunks.iter().for_each(|&chunk_coord| {
+               gfx_render.queue(render::GfxDrawCall {
+                    mesh: manager::ChunkManager::chunk_key(chunk_coord),
+                    pipe: "terrain_pipe".into(),
+                    bind_groups: vec!["global_bg".into()],
+               });
           });
+
+          log::info!("number of draw calls: {}", self.world.render_chunks.len());
      }
 }
