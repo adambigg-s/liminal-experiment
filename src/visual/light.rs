@@ -7,7 +7,7 @@ use crate::world;
 use crate::world::chunk;
 use crate::world::delta;
 
-const MAX_LIGHT: LightInner = 15;
+const MAX_LIGHT: LightInner = 10;
 
 type LightInner = u8;
 
@@ -302,48 +302,69 @@ impl<'c> ChunkLighting<'c>
           let mut outgoing_deltas = delta::LightDeltas::new();
           let chunk = sync::Arc::make_mut(chunk);
 
-          self.sky_lighting(chunk);
+          // self.sky_lighting(chunk);
+
+          for z in 0 .. self.view.chunk_width
+          {
+               for y in 0 .. self.view.chunk_width
+               {
+                    for x in 0 .. self.view.chunk_width
+                    {
+                         let coord = glam::ivec3(x, y, z);
+                         if let Some(emissivity) = chunk.get(coord).emissivity()
+                         {
+                              self.ff.add_light(
+                                   LightNode {
+                                        light: emissivity,
+                                        coord,
+                                   },
+                                   chunk,
+                              );
+                         }
+                    }
+               }
+          }
 
           self.ff.floodfill_lighting(chunk, self.view, &mut outgoing_deltas);
 
           outgoing_deltas
      }
 
-     fn sky_lighting(&mut self, chunk: &mut chunk::Chunk)
-     {
-          for x in 0 .. self.view.chunk_width
-          {
-               for z in 0 .. self.view.chunk_width
-               {
-                    'height: for y in (0 .. self.view.chunk_height).rev()
-                    {
-                         let coord = glam::ivec3(x, y, z);
-                         *chunk.get_light_mut(coord) = Light::max_light();
-                         for (dx, dy, dz) in neighbors::von_neumann3()
-                         {
-                              let neighbor_coord = coord + glam::ivec3(dx, dy, dz);
-                              if chunk.check_index(neighbor_coord)
-                                   && *chunk.get_light(neighbor_coord) == Light::min_light()
-                              {
-                                   self.ff.add_light(
-                                        LightNode {
-                                             light: Light::new(3),
-                                             coord: neighbor_coord,
-                                        },
-                                        chunk,
-                                   );
-                              }
-                         }
+     // fn sky_lighting(&mut self, chunk: &mut chunk::Chunk)
+     // {
+     //      for x in 0 .. self.view.chunk_width
+     //      {
+     //           for z in 0 .. self.view.chunk_width
+     //           {
+     //                'height: for y in (0 .. self.view.chunk_height).rev()
+     //                {
+     //                     let coord = glam::ivec3(x, y, z);
+     //                     *chunk.get_light_mut(coord) = Light::max_light();
+     //                     for (dx, dy, dz) in neighbors::von_neumann3()
+     //                     {
+     //                          let neighbor_coord = coord + glam::ivec3(dx, dy, dz);
+     //                          if chunk.check_index(neighbor_coord)
+     //                               && *chunk.get_light(neighbor_coord) == Light::min_light()
+     //                          {
+     //                               self.ff.add_light(
+     //                                    LightNode {
+     //                                         light: Light::new(3),
+     //                                         coord: neighbor_coord,
+     //                                    },
+     //                                    chunk,
+     //                               );
+     //                          }
+     //                     }
 
-                         let imm_down = coord + glam::ivec3(0, -1, 0);
-                         if chunk.check_index(imm_down) && chunk.get(imm_down).opacity() != Light::min_light()
-                         {
-                              break 'height;
-                         }
-                    }
-               }
-          }
-     }
+     //                     let imm_down = coord + glam::ivec3(0, -1, 0);
+     //                     if chunk.check_index(imm_down) && chunk.get(imm_down).opacity() != Light::min_light()
+     //                     {
+     //                          break 'height;
+     //                     }
+     //                }
+     //           }
+     //      }
+     // }
 
      pub fn update_lighting(
           &mut self,

@@ -1,3 +1,9 @@
+const AMBIENT: f32 = 0.01;
+const FOG_START: f32 = 25.0;
+const FOG_END: f32 = 90.0;
+const FOG_EXP: f32 = 1.0;
+const FADE_COLOR: vec3<f32> = vec3<f32>(0.01, 0.0, 0.0);
+
 struct VertexIn {
     @location(0) pos: vec3<f32>,
     @location(1) nor: vec3<f32>,
@@ -46,10 +52,18 @@ fn fs_main(in: VertexOut) -> FragmentOutput {
     var out: FragmentOutput;
 
     let diffuse_color = textureSample(texture_atlas, sample_atlas, in.tex);
+
+    let ao = pow(in.ao, 2.5);
+    let lum = clamp(in.fil, AMBIENT, 1.0);
+    let shaded_color = diffuse_color * ao * lum;
+
     let depth = length(in.world_pos.xyz);
+    let fog_factor = pow(clamp((depth - FOG_START) / (FOG_END - FOG_START), 0.0, 1.0), FOG_EXP);
+
+    let final_color = mix(shaded_color, vec4<f32>(FADE_COLOR, 1.0), fog_factor);
 
     out.depth = in.pos.z;
-    out.color = diffuse_color;
+    out.color = final_color;
 
     return out;
 }

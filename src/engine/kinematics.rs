@@ -39,6 +39,16 @@ impl Kinematics
           self.velocity -= self.up * impulse * dt;
      }
 
+     pub fn apply_drag(&mut self, friction_coeff: f32, dt: f32)
+     {
+          let vertical_vel = self.up * self.velocity.dot(self.up);
+          let lateral_vel = self.velocity - vertical_vel;
+
+          let drag_multiplier = (1.0 - (friction_coeff * dt)).max(0.0);
+
+          self.velocity = (lateral_vel * drag_multiplier) + vertical_vel;
+     }
+
      pub fn check_grounded<Collider>(&mut self, collider: BoxCollider, world: &Collider) -> bool
      where
           Collider: Collision<Collider = BoxCollider>,

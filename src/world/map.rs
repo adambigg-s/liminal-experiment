@@ -84,6 +84,7 @@ impl ChunkMap
                chunk.stage = stage;
                return true;
           }
+
           false
      }
 
@@ -103,6 +104,7 @@ impl ChunkMap
                chunk.stage = stage;
                return true;
           }
+
           false
      }
 
@@ -112,6 +114,7 @@ impl ChunkMap
           {
                return Some(chunk.stage);
           }
+
           None
      }
 
@@ -126,6 +129,7 @@ impl ChunkMap
           {
                return Some(curr_time);
           }
+
           None
      }
 
@@ -159,18 +163,21 @@ impl ChunkMap
           let mut neighbors = rh::FxHashMap::default();
           for dz in -size ..= size
           {
-               for dx in -size ..= size
+               for dy in -size ..= size
                {
-                    let rel = glam::ivec3(dx, 0, dz);
-                    let coord = center + rel;
-
-                    let chunk = map.get(&coord)?;
-                    if chunk.stage < stage_threshold
+                    for dx in -size ..= size
                     {
-                         return None;
-                    }
+                         let rel = glam::ivec3(dx, dy, dz);
+                         let coord = center + rel;
 
-                    neighbors.insert(rel, sync::Arc::clone(&chunk.chunk));
+                         let chunk = map.get(&coord)?;
+                         if chunk.stage < stage_threshold
+                         {
+                              return None;
+                         }
+
+                         neighbors.insert(rel, sync::Arc::clone(&chunk.chunk));
+                    }
                }
           }
           let chunk = sync::Arc::clone(&map[&center].chunk);
@@ -198,20 +205,23 @@ impl ChunkMap
           let mut neighbors = rh::FxHashMap::default();
           for dz in -size ..= size
           {
-               for dx in -size ..= size
+               for dy in -size ..= size
                {
-                    let rel = glam::ivec3(dx, 0, dz);
-                    let coord = center + rel;
-
-                    let chunk = map.get(&coord);
-                    if let Some(chunk) = chunk
+                    for dx in -size ..= size
                     {
-                         if chunk.stage < stage_threshold
-                         {
-                              continue;
-                         }
+                         let rel = glam::ivec3(dx, dy, dz);
+                         let coord = center + rel;
 
-                         neighbors.insert(rel, sync::Arc::clone(&chunk.chunk));
+                         let chunk = map.get(&coord);
+                         if let Some(chunk) = chunk
+                         {
+                              if chunk.stage < stage_threshold
+                              {
+                                   continue;
+                              }
+
+                              neighbors.insert(rel, sync::Arc::clone(&chunk.chunk));
+                         }
                     }
                }
           }

@@ -20,9 +20,16 @@ impl TerrainGenerator
                          if neighbors::von_neumann3().iter().any(|&(dx, dy, dz)| {
                               let neighbor_coord = coord + glam::ivec3(dx, dy, dz);
                               !chunk.check_index(neighbor_coord)
-                         })
+                         }) && rand::random_bool(0.1)
                          {
-                              *chunk.get_mut(coord) = block::Block::random()
+                              *chunk.get_mut(coord) = if rand::random_bool(0.02)
+                              {
+                                   block::Block::Light
+                              }
+                              else
+                              {
+                                   block::Block::Plain
+                              };
                          }
                     }
                }

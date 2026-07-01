@@ -48,7 +48,10 @@ impl application::Application for Liminal
                .lookspeed(0.0025)
                .movespeed(20.0)
                .kinematics(kinematics::Kinematics::builder().up(glam::Vec3::Y).build())
-               .collider(kinematics::BoxCollider::new([0.0; 3], [0.0; 3]))
+               .collider(kinematics::BoxCollider::point_sides(
+                    camera.inner.position.to_array(),
+                    [0.45, 0.85, 0.45],
+               ))
                .build();
           let frame = engine::FrameData::new();
 
@@ -59,10 +62,10 @@ impl application::Application for Liminal
                .atlas(sync::Arc::clone(&atlas))
                .terrain(sync::Arc::new(terrain))
                .view_distance(5)
-               .chunk_height(16)
-               .chunk_width(16)
+               .chunk_height(32)
+               .chunk_width(32)
                .build();
-          world.spawn_workers(1);
+          world.spawn_workers(3);
 
           render.register_bind_group_layout(
                context,
@@ -125,34 +128,123 @@ impl application::Application for Liminal
           {
                input.request_grab = !input.request_grab;
           }
+          if input.consume_key_press("keyy")
+          {
+               self.player.collisions = !self.player.collisions;
+          }
+          if input.consume_key_press("digit1")
+          {
+               self.player.movespeed *= 0.5;
+          }
+          if input.consume_key_press("digit2")
+          {
+               self.player.movespeed *= 2.0;
+          }
 
-          let mut movement = glam::IVec3::ZERO;
-          if input.get_key_pres("keyw")
+          // let mut movement = glam::IVec3::ZERO;
+          // if input.get_key_pres("keyw")
+          // {
+          //      movement.z += 1;
+          // }
+          // if input.get_key_pres("keys")
+          // {
+          //      movement.z -= 1;
+          // }
+          // if input.get_key_pres("keyd")
+          // {
+          //      movement.x += 1;
+          // }
+          // if input.get_key_pres("keya")
+          // {
+          //      movement.x -= 1;
+          // }
+          // if input.get_key_pres("space")
+          // {
+          //      movement.y += 1;
+          // }
+          // if input.get_key_pres("shiftleft")
+          // {
+          //      movement.y -= 1;
+          // }
+          // let movement = movement.as_vec3() * self.player.movespeed * self.frame.dt;
+          // self.camera.update_position(movement.x, movement.y, movement.z);
+
+          match self.player.collisions
           {
-               movement.z += 1;
+               | true =>
+               {
+                    let mut frame_movement_speed = self.player.movespeed;
+                    let [mut dx, _, mut dz] = [0.0; 3];
+                    if input.get_key_pres("keyw")
+                    {
+                         dz += 1.0;
+                    }
+                    if input.get_key_pres("keys")
+                    {
+                         dz -= 1.0;
+                    }
+                    if input.get_key_pres("keyd")
+                    {
+                         dx += 1.0;
+                    }
+                    if input.get_key_pres("keya")
+                    {
+                         dx -= 1.0;
+                    }
+                    if input.get_key_pres("space")
+                    {
+                         self.player.kinematics.jump(9.5);
+                    }
+                    if input.get_key_pres("shiftleft")
+                    {
+                         frame_movement_speed *= 1.5;
+                    }
+                    let forward = self.camera.inner.forward().with_y(0.0).normalize_or_zero();
+                    let right = self.camera.inner.right().with_y(0.0).normalize_or_zero();
+                    let movement = (right * dx + forward * dz).normalize_or_zero();
+                    self.player.kinematics.velocity.x += movement.x * frame_movement_speed * self.frame.dt;
+                    self.player.kinematics.velocity.z += movement.z * frame_movement_speed * self.frame.dt;
+                    self.player.kinematics.apply_gravity(32.0, self.frame.dt);
+                    self.player.kinematics.apply_drag(24.0, self.frame.dt);
+                    self.player.collider =
+                         self.player.kinematics.translate(self.player.collider, &self.world, self.frame.dt);
+                    self.camera.inner.position = self.player.collider.center() + glam::vec3(0.0, 0.65, 0.0);
+               }
+               | false =>
+               {
+                    let [mut dx, mut dy, mut dz] = [0.0; 3];
+                    if input.get_key_pres("keyw")
+                    {
+                         dz += 1.0;
+                    }
+                    if input.get_key_pres("keys")
+                    {
+                         dz -= 1.0;
+                    }
+                    if input.get_key_pres("keyd")
+                    {
+                         dx += 1.0;
+                    }
+                    if input.get_key_pres("keya")
+                    {
+                         dx -= 1.0;
+                    }
+                    if input.get_key_pres("space")
+                    {
+                         dy += 1.0;
+                    }
+                    if input.get_key_pres("shiftleft")
+                    {
+                         dy -= 1.0;
+                    }
+                    [dx, dy, dz] =
+                         (glam::vec3(dx, dy, dz).normalize_or_zero() * self.player.movespeed * self.frame.dt)
+                              .to_array();
+                    self.camera.update_position(dx, dy, dz);
+                    self.player.collider =
+                         self.player.collider + (self.camera.inner.position - self.player.collider.center());
+               }
           }
-          if input.get_key_pres("keys")
-          {
-               movement.z -= 1;
-          }
-          if input.get_key_pres("keyd")
-          {
-               movement.x += 1;
-          }
-          if input.get_key_pres("keya")
-          {
-               movement.x -= 1;
-          }
-          if input.get_key_pres("space")
-          {
-               movement.y += 1;
-          }
-          if input.get_key_pres("shiftleft")
-          {
-               movement.y -= 1;
-          }
-          let movement = movement.as_vec3() * self.player.movespeed * self.frame.dt;
-          self.camera.update_position(movement.x, movement.y, movement.z);
 
           let [mut dy, mut dx] = input.consume_mouse_delta().into();
           [dy, dx] = (glam::vec2(dy, dx) * self.player.lookspeed).to_array();
@@ -162,8 +254,6 @@ impl application::Application for Liminal
           self.camera.inner.rotation = glam::Quat::from_rotation_z(0.0)
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
-
-          log::info!("{}", self.camera);
      }
 
      fn gfx_frame(
@@ -174,6 +264,7 @@ impl application::Application for Liminal
      )
      {
           self.camera.ar = context.config.width as f32 / context.config.height as f32;
+          self.world.sync_gfx_chunks(context, render);
           if let Some(resource::GfxResource::Uniform(camera_uni)) =
                render.resources.get("camera_view_proj_uni")
           {
@@ -192,8 +283,6 @@ impl application::Application for Liminal
           {
                panic!();
           }
-
-          self.world.sync_gfx_chunks(context, render);
 
           self.world.render_chunks.iter().for_each(|&chunk_coord| {
                render.queue(render::GfxDrawCall {

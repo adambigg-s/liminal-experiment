@@ -21,7 +21,7 @@ impl kinematics::Collision for chunk::Chunk
                          let coord = glam::ivec3(x, y, z);
                          let target_chunk = glam::ivec3(
                               (coord.x as f32 / self.width() as f32).floor() as i32,
-                              0,
+                              (coord.y as f32 / self.height() as f32).floor() as i32,
                               (coord.z as f32 / self.width() as f32).floor() as i32,
                          );
                          if target_chunk != self.offset()
@@ -56,13 +56,16 @@ impl kinematics::Collision for manager::ChunkManager
           let center_chunk = self.chunk_surrounding(center);
           for dx in -1 ..= 1
           {
-               for dz in -1 ..= 1
+               for dy in -1 ..= 1
                {
-                    let coord = center_chunk + glam::ivec3(dx, 0, dz);
-                    if let Some(entry) = self.chunk_map.chunks.read().unwrap().get(&coord)
-                         && entry.chunk.collides(collider)
+                    for dz in -1 ..= 1
                     {
-                         return true;
+                         let coord = center_chunk + glam::ivec3(dx, dy, dz);
+                         if let Some(entry) = self.chunk_map.chunks.read().unwrap().get(&coord)
+                              && entry.chunk.collides(collider)
+                         {
+                              return true;
+                         }
                     }
                }
           }
