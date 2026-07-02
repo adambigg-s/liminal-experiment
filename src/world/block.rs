@@ -33,6 +33,7 @@ pub enum Block
      Light,
      Distressed1,
      AlmondWater,
+     Corrupt1,
      BlockCounter,
 }
 
@@ -44,6 +45,7 @@ impl Block
           Block::Light,
           Block::Distressed1,
           Block::AlmondWater,
+          Block::Corrupt1,
      ];
      const EMPTY: Block = Block::Air;
 
@@ -66,6 +68,7 @@ impl Block
                | Block::Light => "light",
                | Block::Distressed1 => "distressed1",
                | Block::AlmondWater => "almondwater",
+               | Block::Corrupt1 => "corrupt1",
                | Block::BlockCounter => "",
           }
      }

@@ -61,6 +61,7 @@ where
      {
           self.window.request_redraw();
           self.inner_state.gfx_frame(&self.input, &mut self.gfx_context, &mut self.gfx_render);
+          self.inner_state.gfx_prepass(&self.input, &mut self.gfx_context, &mut self.gfx_render);
 
           let output = match self.gfx_context.surface.get_current_texture()
           {
@@ -117,6 +118,8 @@ where
 
                self.gfx_render.render(&mut render_pass);
           }
+
+          self.inner_state.gfx_postpass(&self.input, &mut self.gfx_context, &mut self.gfx_render);
 
           self.gfx_context.queue.submit([encoder.finish()]);
           output.present();

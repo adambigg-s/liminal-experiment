@@ -1,7 +1,10 @@
-const AMBIENT: f32 = 0.0025;
+const AMBIENT: f32 = 0.0825;
+// const AMBIENT: f32 = 0.0025;
 const FADE_COLOR: vec3<f32> = vec3<f32>(0.0, 0.0, 0.0);
-const FOG_START: f32 = 25.0;
-const FOG_END: f32 = 100.0;
+// const FOG_START: f32 = 25.0;
+// const FOG_END: f32 = 100.0;
+const FOG_START: f32 = 100.0;
+const FOG_END: f32 = 1000.0;
 const FOG_EXP: f32 = 1.0;
 const VICINITY_START: f32 = 7.5;
 const VICINITY_STRENGTH: f32 = 0.05;

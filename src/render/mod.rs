@@ -1,7 +1,6 @@
 pub mod mesh;
 pub mod resource;
 pub mod util;
-
 use std::sync;
 
 use rustc_hash as rh;

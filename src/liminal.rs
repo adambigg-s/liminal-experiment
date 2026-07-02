@@ -50,21 +50,21 @@ impl application::Application for Liminal
           let mut world = manager::ChunkManager::builder()
                .atlas(sync::Arc::clone(&atlas))
                .terrain(sync::Arc::new(terrain))
-               .view_distance(8)
-               .chunk_height(32)
+               .view_distance(196)
+               .chunk_height(8)
                .chunk_width(32)
                .build();
-          world.spawn_workers(3);
+          world.spawn_workers(2);
 
           let camera = camera::Camera::builder()
                .ar(context.config.width as f32 / context.config.height as f32)
                .fov(90f32)
                .znear(0.1)
-               .zfear(100.0)
+               .zfear(500.0)
                .build();
           let player = player::PlayerController::builder()
-               .lookspeed(0.0025)
-               .movespeed(20.0)
+               .lookspeed(0.00125)
+               .movespeed(16.0)
                .kinematics(kinematics::Kinematics::builder().up(glam::Vec3::Y).build())
                .collider(kinematics::BoxCollider::point_sides(
                     camera.inner.position.to_array(),
@@ -147,34 +147,6 @@ impl application::Application for Liminal
                self.player.movespeed *= 2.0;
           }
 
-          // let mut movement = glam::IVec3::ZERO;
-          // if input.get_key_pres("keyw")
-          // {
-          //      movement.z += 1;
-          // }
-          // if input.get_key_pres("keys")
-          // {
-          //      movement.z -= 1;
-          // }
-          // if input.get_key_pres("keyd")
-          // {
-          //      movement.x += 1;
-          // }
-          // if input.get_key_pres("keya")
-          // {
-          //      movement.x -= 1;
-          // }
-          // if input.get_key_pres("space")
-          // {
-          //      movement.y += 1;
-          // }
-          // if input.get_key_pres("shiftleft")
-          // {
-          //      movement.y -= 1;
-          // }
-          // let movement = movement.as_vec3() * self.player.movespeed * self.frame.dt;
-          // self.camera.update_position(movement.x, movement.y, movement.z);
-
           match self.player.collisions
           {
                | true =>
@@ -208,8 +180,8 @@ impl application::Application for Liminal
                     }
                     if input.get_key_pres("controlleft")
                     {
-                         camera_offset /= 1.5;
-                         frame_movement_speed /= 1.5;
+                         camera_offset /= 2.0;
+                         frame_movement_speed /= 2.0;
                     }
                     let forward = self.camera.inner.forward().with_y(0.0).normalize_or_zero();
                     let right = self.camera.inner.right().with_y(0.0).normalize_or_zero();

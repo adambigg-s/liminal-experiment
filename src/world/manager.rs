@@ -270,7 +270,12 @@ impl ChunkManager
 
      fn chunk_in_range(&self, coord: glam::IVec3) -> bool
      {
-          let rel = coord.saturating_sub(self.center_chunk);
+          let coord = coord
+               * glam::ivec3(self.chunk_width as i32, self.chunk_height as i32, self.chunk_width as i32);
+          let rel = coord.saturating_sub(
+               self.center_chunk
+                    * glam::ivec3(self.chunk_width as i32, self.chunk_height as i32, self.chunk_width as i32),
+          );
           let rel_sq_length = (rel.x.saturating_mul(rel.x))
                .saturating_add(rel.y.saturating_mul(rel.y))
                .saturating_add(rel.z.saturating_mul(rel.z)) as usize;
