@@ -1,3 +1,4 @@
+use std::env;
 use std::sync;
 
 use crate::application;
@@ -32,17 +33,34 @@ impl application::Application for Liminal
           application::Config::builder()
                .width(1920)
                .height(1080)
-               .title("Superulta Liminal Game")
+               .title("super liminal game experiment")
                .build()
      }
 
      fn setup(context: &mut render::GfxContext, render: &mut render::GfxRenderer) -> anyhow::Result<Self>
      {
+          let atlas = sync::Arc::new(atlas::TextureAtlas::new("./res/liminal/", 128)?);
+          atlas.save("./res/liminal_atlas.png")?;
+          let seed = env::args()
+               .collect::<Vec<String>>()
+               .get(1)
+               .map(|val| val.parse::<u32>().unwrap_or(0))
+               .unwrap_or(0);
+          let terrain = terrain::TerrainGenerator::new(seed);
+          let mut world = manager::ChunkManager::builder()
+               .atlas(sync::Arc::clone(&atlas))
+               .terrain(sync::Arc::new(terrain))
+               .view_distance(8)
+               .chunk_height(32)
+               .chunk_width(32)
+               .build();
+          world.spawn_workers(3);
+
           let camera = camera::Camera::builder()
                .ar(context.config.width as f32 / context.config.height as f32)
                .fov(90f32)
                .znear(0.1)
-               .zfear(500.0)
+               .zfear(100.0)
                .build();
           let player = player::PlayerController::builder()
                .lookspeed(0.0025)
@@ -54,18 +72,6 @@ impl application::Application for Liminal
                ))
                .build();
           let frame = engine::FrameData::new();
-
-          let atlas = sync::Arc::new(atlas::TextureAtlas::new("./res/liminal/", 128)?);
-          atlas.save("./res/liminal_atlas.png")?;
-          let terrain = terrain::TerrainGenerator::builder().build();
-          let mut world = manager::ChunkManager::builder()
-               .atlas(sync::Arc::clone(&atlas))
-               .terrain(sync::Arc::new(terrain))
-               .view_distance(5)
-               .chunk_height(32)
-               .chunk_width(32)
-               .build();
-          world.spawn_workers(3);
 
           render.register_bind_group_layout(
                context,
@@ -174,6 +180,7 @@ impl application::Application for Liminal
                | true =>
                {
                     let mut frame_movement_speed = self.player.movespeed;
+                    let mut camera_offset = 0.65;
                     let [mut dx, _, mut dz] = [0.0; 3];
                     if input.get_key_pres("keyw")
                     {
@@ -199,6 +206,11 @@ impl application::Application for Liminal
                     {
                          frame_movement_speed *= 1.5;
                     }
+                    if input.get_key_pres("controlleft")
+                    {
+                         camera_offset /= 1.5;
+                         frame_movement_speed /= 1.5;
+                    }
                     let forward = self.camera.inner.forward().with_y(0.0).normalize_or_zero();
                     let right = self.camera.inner.right().with_y(0.0).normalize_or_zero();
                     let movement = (right * dx + forward * dz).normalize_or_zero();
@@ -208,7 +220,8 @@ impl application::Application for Liminal
                     self.player.kinematics.apply_drag(24.0, self.frame.dt);
                     self.player.collider =
                          self.player.kinematics.translate(self.player.collider, &self.world, self.frame.dt);
-                    self.camera.inner.position = self.player.collider.center() + glam::vec3(0.0, 0.65, 0.0);
+                    self.camera.inner.position =
+                         self.player.collider.center() + glam::vec3(0.0, camera_offset, 0.0);
                }
                | false =>
                {

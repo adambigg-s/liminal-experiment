@@ -7,7 +7,7 @@ use crate::world;
 use crate::world::chunk;
 use crate::world::delta;
 
-const MAX_LIGHT: LightInner = 10;
+const MAX_LIGHT: LightInner = 15;
 
 type LightInner = u8;
 
@@ -306,7 +306,7 @@ impl<'c> ChunkLighting<'c>
 
           for z in 0 .. self.view.chunk_width
           {
-               for y in 0 .. self.view.chunk_width
+               for y in 0 .. self.view.chunk_height
                {
                     for x in 0 .. self.view.chunk_width
                     {

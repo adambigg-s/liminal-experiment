@@ -317,6 +317,11 @@ impl<'c> ChunkMesher<'c>
 
      fn map_ao(&self, coord: glam::IVec3, face: rectilinear::Face) -> [f32; 4]
      {
+          if self.view.get_block(coord).emissivity().is_some()
+          {
+               return [1.0; 4];
+          }
+
           let nor = face.neighbor_offset();
           let adj = coord + nor;
 
@@ -353,6 +358,11 @@ impl<'c> ChunkMesher<'c>
 
      fn map_face_lighting(&self, coord: glam::IVec3, face: rectilinear::Face) -> [f32; 4]
      {
+          if self.view.get_block(coord).emissivity().is_some()
+          {
+               return [1.0; 4];
+          }
+
           let nor = face.neighbor_offset();
           let adj = coord + nor;
 

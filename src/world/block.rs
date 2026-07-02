@@ -32,13 +32,19 @@ pub enum Block
      Plain,
      Light,
      Distressed1,
+     AlmondWater,
      BlockCounter,
 }
 
 impl Block
 {
-     const ALL: [Block; Block::BlockCounter as usize] =
-          [Block::Air, Block::Plain, Block::Light, Block::Distressed1];
+     const ALL: [Block; Block::BlockCounter as usize] = [
+          Block::Air,
+          Block::Plain,
+          Block::Light,
+          Block::Distressed1,
+          Block::AlmondWater,
+     ];
      const EMPTY: Block = Block::Air;
 
      pub fn empty() -> Self
@@ -59,6 +65,7 @@ impl Block
                | Block::Plain => "plain",
                | Block::Light => "light",
                | Block::Distressed1 => "distressed1",
+               | Block::AlmondWater => "almondwater",
                | Block::BlockCounter => "",
           }
      }
@@ -69,6 +76,7 @@ impl Block
           {
                | Block::Air => light::Light::new(0),
                | Block::Light => light::Light::new(0),
+               | Block::AlmondWater => light::Light::new(0),
                | _ => light::Light::max_light(),
           }
      }
@@ -78,6 +86,7 @@ impl Block
           match self
           {
                | Block::Air => Visibility::Invisible,
+               | Block::AlmondWater => Visibility::PartialOpaque,
                | _ => Visibility::Opaque,
           }
      }
@@ -95,6 +104,7 @@ impl Block
      {
           match self
           {
+               | Block::AlmondWater => EmittedMesh::Decorator,
                | _ => EmittedMesh::RectilinearFull,
           }
      }
