@@ -1,3 +1,5 @@
+use std::arch::x86_64::_MM_FROUND_TO_NEG_INF;
+
 use crate::engine::neighbors;
 use crate::world::block;
 use crate::world::chunk;
@@ -38,29 +40,41 @@ impl Biome
      {
           match (biome, weird)
           {
-               | (b, w) if b < 0.3 && w > 0.7 => Self::Pitfalls,
-               | (b, w) if b > 0.8 && w < 0.5 => Self::Pillars,
+               | (b, w) if b < 0.3 && w > 0.9 => Self::SuperLiminal,
+               | (b, w) if b > 0.6 && w < 0.3 => Self::Pillars,
                | (b, _) if b > 0.3 => Self::Maze,
                | (_, w) if w > 0.8 => Self::Parkour,
-               | (b, _) if b < 0.2 => Self::Empty,
-               | _ => Self::SuperLiminal,
+               | (b, _) if b < 0.1 => Self::Empty,
+               | _ => Self::Pitfalls,
           }
      }
 
-     pub fn generate(&self, chunk: &mut chunk::Chunk, noise: &noise::Perlin, config: &TerrainConfig)
+     pub fn generate(
+          &self,
+          chunk: &mut chunk::Chunk,
+          noise: &noise::Perlin,
+          config: &TerrainConfig,
+          deltas: &mut delta::BlockDeltas,
+     )
      {
           match self
           {
-               | Biome::Maze => self.make_maze(chunk, noise, config),
+               | Biome::Maze => self.make_maze(chunk, noise, config, deltas),
                | Biome::Pillars => self.make_pillars(chunk, config),
-               | Biome::Pitfalls => self.make_pitfalls(chunk, config),
+               | Biome::Pitfalls => self.make_pitfalls(chunk, config, deltas),
                | Biome::Empty => self.make_empty(chunk),
                | Biome::Parkour => self.make_parkour(chunk, noise, config),
                | Biome::SuperLiminal => self.make_superliminal(chunk),
           }
      }
 
-     pub fn make_maze(&self, chunk: &mut chunk::Chunk, noise: &noise::Perlin, config: &TerrainConfig)
+     pub fn make_maze(
+          &self,
+          chunk: &mut chunk::Chunk,
+          noise: &noise::Perlin,
+          config: &TerrainConfig,
+          deltas: &mut delta::BlockDeltas,
+     )
      {
           let size = chunk.size();
           for z in 0 .. size.z
@@ -76,6 +90,12 @@ impl Biome
                     {
                          *chunk.get_mut(coord) = block::Block::Light
                     }
+
+                    let coord = glam::ivec3(x, 0, z);
+                    if config.feature_noise.sample(noise, coord.as_dvec3()) > 0.9
+                    {
+                         *chunk.get_mut(coord) = block::Block::AlmondWater;
+                    }
                }
           }
      }
@@ -90,10 +110,7 @@ impl Biome
                     for x in 0 .. size.x
                     {
                          let coord = glam::ivec3(x, y, z);
-                         if x % 8 == 0 && y % 8 == 0 && z % 8 == 0
-                         {
-                              *chunk.get_mut(coord) = block::Block::Light;
-                         }
+                         *chunk.get_mut(coord) = block::Block::Plain;
                     }
                }
           }
@@ -112,9 +129,9 @@ impl Biome
                          if neighbors::von_neumann3().iter().any(|&(dx, dy, dz)| {
                               let neighbor_coord = coord + glam::ivec3(dx, dy, dz);
                               !chunk.check_index(neighbor_coord)
-                         }) && rand::random_bool(0.1)
+                         }) && rand::random_bool(0.025)
                          {
-                              *chunk.get_mut(coord) = if rand::random_bool(0.02)
+                              *chunk.get_mut(coord) = if rand::random_bool(0.01)
                               {
                                    block::Block::Light
                               }
@@ -140,14 +157,14 @@ impl Biome
           }
      }
 
-     fn make_pitfalls(&self, chunk: &mut chunk::Chunk, _: &TerrainConfig)
+     fn make_pitfalls(&self, chunk: &mut chunk::Chunk, _: &TerrainConfig, deltas: &mut delta::BlockDeltas)
      {
           let size = chunk.size();
           for z in 0 .. size.z
           {
                for x in 0 .. size.x
                {
-                    if x % 5 != 0 && z % 5 != 0
+                    if x % 8 != 0 && z % 8 != 0
                     {
                          continue;
                     }
@@ -171,7 +188,25 @@ impl Biome
           }
      }
 
-     fn make_parkour(&self, chunk: &mut chunk::Chunk, noise: &noise::Perlin, config: &TerrainConfig) {}
+     fn make_parkour(&self, chunk: &mut chunk::Chunk, noise: &noise::Perlin, config: &TerrainConfig)
+     {
+          let size = chunk.size();
+          for z in 0 .. size.z
+          {
+               for y in 0 .. size.y
+               {
+                    for x in 0 .. size.x
+                    {
+                         let coord = glam::ivec3(x, y, z);
+
+                         if config.feature_noise.sample(noise, coord.as_dvec3()) > 0.75
+                         {
+                              *chunk.get_mut(coord) = block::Block::Corrupt1;
+                         }
+                    }
+               }
+          }
+     }
 
      fn make_pillars(&self, chunk: &mut chunk::Chunk, config: &TerrainConfig)
      {
@@ -185,12 +220,12 @@ impl Biome
 
                     let coord = glam::ivec3(x, size.y - 2, z);
                     *chunk.get_mut(coord) = block::Block::Plain;
-                    if x % 5 == 0 && z % 5 == 0
+                    if x % 8 == 0 && z % 8 == 0
                     {
                          *chunk.get_mut(coord) = block::Block::Light;
                     }
 
-                    if x % 3 != 0 && z % 3 != 0
+                    if !(x % 5 == 0 && z % 5 == 0)
                     {
                          continue;
                     }
@@ -198,7 +233,7 @@ impl Biome
                     for y in 0 .. size.y - 2
                     {
                          let coord = glam::ivec3(x, y, z);
-                         *chunk.get_mut(coord) = block::Block::Plain;
+                         *chunk.get_mut(coord) = block::Block::Distressed1;
                     }
                }
           }
@@ -233,20 +268,20 @@ impl TerrainGenerator
           let config = TerrainConfig::builder()
                .biome_noise(
                     NoiseLayer::builder()
-                         .offset(glam::DVec3::ZERO)
-                         .freq(glam::dvec3(0.15, 0.05, 0.15))
+                         .offset(glam::DVec3::splat(0.0))
+                         .freq(glam::dvec3(0.5, 0.05, 0.5))
                          .build(),
                )
                .weird_noise(
                     NoiseLayer::builder()
                          .offset(glam::DVec3::splat(250.0))
-                         .freq(glam::dvec3(0.25, 0.25, 0.25))
+                         .freq(glam::dvec3(0.5, 0.5, 0.5))
                          .build(),
                )
                .feature_noise(
                     NoiseLayer::builder()
                          .offset(glam::DVec3::splat(-8000.0))
-                         .freq(glam::dvec3(0.05, 0.05, 0.05))
+                         .freq(glam::dvec3(0.3, 0.3, 0.3))
                          .build(),
                )
                .build();
@@ -260,13 +295,15 @@ impl TerrainGenerator
 
      pub fn form_chunk(&self, chunk: &mut chunk::Chunk) -> delta::BlockDeltas
      {
+          let mut outgoing_deltas = delta::BlockDeltas::new();
+
           let coord = chunk.offset().as_dvec3();
           let biome = self.config.biome_noise.sample(self.noise, coord);
           let weird = self.config.weird_noise.sample(self.noise, coord);
 
           let biome = Biome::classify(biome, weird);
-          biome.generate(chunk, &self.noise, &self.config);
+          biome.generate(chunk, &self.noise, &self.config, &mut outgoing_deltas);
 
-          delta::BlockDeltas::new()
+          outgoing_deltas
      }
 }
