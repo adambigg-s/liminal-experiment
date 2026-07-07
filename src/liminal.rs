@@ -56,12 +56,13 @@ impl application::Application for Liminal
                .build();
           world.spawn_workers(2);
 
-          let camera = camera::Camera::builder()
+          let mut camera = camera::Camera::builder()
                .ar(context.config.width as f32 / context.config.height as f32)
                .fov(90f32)
                .znear(0.1)
                .zfear(500.0)
                .build();
+          camera.inner.position += glam::vec3(0.0, 3.0, 0.0);
           let player = player::PlayerController::builder()
                .lookspeed(0.00125)
                .movespeed(16.0)
