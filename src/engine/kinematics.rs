@@ -94,10 +94,8 @@ impl Kinematics
                curr = z;
           }
 
-          if self.check_grounded(curr, world) && self.up.dot(self.velocity).abs() < Self::KINEMATIC_DELTA
-          {
-               self.flying = false;
-          }
+          self.flying = !(self.check_grounded(curr, world)
+               && self.up.dot(self.velocity).abs() < Self::KINEMATIC_DELTA);
 
           curr
      }

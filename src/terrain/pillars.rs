@@ -24,9 +24,9 @@ impl terrain::BiomeTrait for Pillars
                for x in 0 .. size.x
                {
                     let coord = glam::ivec3(x, size.y - 1, z);
-                    *chunk.get_mut(coord) = block::Block::Plain;
+                    *chunk.get_mut(coord) = block::Block::wall_block(0.05);;
                     let coord = glam::ivec3(x, size.y - 2, z);
-                    *chunk.get_mut(coord) = block::Block::Plain;
+                    *chunk.get_mut(coord) = block::Block::wall_block(0.05);;
 
                     if x % 8 == 0 && z % 8 == 0
                     {
@@ -41,7 +41,7 @@ impl terrain::BiomeTrait for Pillars
                     for y in 0 .. size.y - 2
                     {
                          let coord = glam::ivec3(x, y, z);
-                         *chunk.get_mut(coord) = block::Block::Distressed1;
+                         *chunk.get_mut(coord) = block::Block::wall_block(0.075);
                     }
                }
           }

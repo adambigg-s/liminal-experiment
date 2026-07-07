@@ -24,10 +24,11 @@ impl terrain::BiomeTrait for Maze
                for x in 0 .. size.x
                {
                     let coord = glam::ivec3(x, size.y - 1, z);
-                    *chunk.get_mut(coord) = block::Block::Plain;
+                    *chunk.get_mut(coord) = block::Block::wall_block(0.05);
 
                     let coord = glam::ivec3(x, size.y - 2, z);
-                    *chunk.get_mut(coord) = block::Block::Plain;
+                    *chunk.get_mut(coord) = block::Block::wall_block(0.05);
+
                     if x % 5 == 0 && z % 5 == 0 && config.feature_noise.sample(noise, coord.as_dvec3()) > 0.45
                     {
                          *chunk.get_mut(coord) = block::Block::Light
@@ -40,52 +41,47 @@ impl terrain::BiomeTrait for Maze
                          *chunk.get_mut(coord) = block::Block::AlmondWater;
                     }
 
-                    if config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.65
+                    if config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.8
                     {
-                         for y in 0 .. size.y - 2
+                         let bias = if rand::random_bool(0.5)
                          {
-                              let mut coord = glam::ivec3(x, y, z);
-
-                              *chunk.get_mut(coord) = block::Block::Plain;
-
-                              let bias = if rand::random_bool(0.5)
+                              if rand::random_bool(0.5)
                               {
-                                   if rand::random_bool(0.5)
-                                   {
-                                        glam::ivec3(1, 0, 0)
-                                   }
-                                   else
-                                   {
-                                        glam::ivec3(-1, 0, 0)
-                                   }
+                                   glam::ivec3(1, 0, 0)
                               }
                               else
                               {
-                                   if rand::random_bool(0.5)
-                                   {
-                                        glam::ivec3(0, 0, 1)
-                                   }
-                                   else
-                                   {
-                                        glam::ivec3(0, 0, -1)
-                                   }
-                              };
+                                   glam::ivec3(-1, 0, 0)
+                              }
+                         }
+                         else
+                         {
+                              if rand::random_bool(0.5)
+                              {
+                                   glam::ivec3(0, 0, 1)
+                              }
+                              else
+                              {
+                                   glam::ivec3(0, 0, -1)
+                              }
+                         };
 
-                              // while rand::random_bool(0.90)
-                              // {
-                              //      let offset = glam::ivec3(
-                              //           rand::random_range(1 .. 2),
-                              //           0,
-                              //           rand::random_range(1 .. 2),
-                              //      );
-                              //      coord += offset + bias * 2;
-                              //      if !chunk.check_index(coord)
-                              //      {
-                              //           break;
-                              //      }
+                         let mut coord = glam::ivec3(x, 0, z);
+                         for _ in 0 .. 10
+                         {
+                              let offset =
+                                   glam::ivec3(rand::random_range(-1 ..= 1), 0, rand::random_range(-1 ..= 1));
+                              coord += offset + bias;
+                              if !chunk.check_index(coord)
+                              {
+                                   break;
+                              }
 
-                              //      *chunk.get_mut(coord) = block::Block::Plain;
-                              // }
+                              for y in 0 .. size.y - 2
+                              {
+                                   let coord = coord.with_y(y);
+                                   *chunk.get_mut(coord) = block::Block::wall_block(0.01);
+                              }
                          }
                     }
                }
@@ -95,7 +91,7 @@ impl terrain::BiomeTrait for Maze
           {
                for z in 0 .. size.z
                {
-                    if rand::random_bool(0.001)
+                    if rand::random_bool(0.00025)
                     {
                          for i in 0 .. 2
                          {

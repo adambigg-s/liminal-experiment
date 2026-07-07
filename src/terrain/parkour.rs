@@ -8,6 +8,23 @@ use crate::world::delta;
 
 pub struct Parkour;
 
+impl Parkour
+{
+     fn count_neighbors(&self, chunk: &world::chunk::Chunk, x: i32, y: i32, z: i32) -> i32
+     {
+          let mut count = 0;
+          for (dx, dy, dz) in neighbors::von_neumann3()
+          {
+               let coord = glam::ivec3(x + dx, y + dy, z + dz);
+               if chunk.check_index(coord) && *chunk.get(coord) != block::Block::empty()
+               {
+                    count += 1;
+               }
+          }
+          count
+     }
+}
+
 impl terrain::BiomeTrait for Parkour
 {
      fn generate(
@@ -27,9 +44,32 @@ impl terrain::BiomeTrait for Parkour
                     {
                          let coord = glam::ivec3(x, y, z);
 
-                         if config.feature_noise.sample(noise, coord.as_dvec3()) > 0.75
+                         if config.feature_noise.sample(noise, coord.as_dvec3()) > 2.0 / 3.0
                          {
-                              *chunk.get_mut(coord) = block::Block::Corrupt1;
+                              if rand::random_bool(0.0025)
+                              {
+                                   *chunk.get_mut(coord) = block::Block::Light;
+                              }
+                              else
+                              {
+                                   *chunk.get_mut(coord) = block::Block::corrupt_block(0.25);
+                              }
+                         }
+                    }
+               }
+          }
+
+          for z in 0 .. size.z
+          {
+               for y in 0 .. size.y
+               {
+                    for x in 0 .. size.x
+                    {
+                         let coord = glam::ivec3(x, y, z);
+                         let neighbors = self.count_neighbors(chunk, x, y, z);
+                         if neighbors > 1
+                         {
+                              *chunk.get_mut(coord) = block::Block::empty();
                          }
                     }
                }

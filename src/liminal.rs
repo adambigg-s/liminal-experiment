@@ -1,8 +1,6 @@
 use std::env;
 use std::sync;
 
-use kira::sound::static_sound;
-
 use crate::application;
 use crate::application::input;
 use crate::engine;
@@ -24,12 +22,15 @@ pub struct Liminal
 {
      pub camera: camera::Camera,
      pub player: player::PlayerController,
-     pub frame: engine::FrameData,
+     pub sounds: player::PlayerSoundController,
+     pub head_bobber: player::PlayerHeadBobber,
+
+     pub audio: kira::AudioManager,
 
      pub world: manager::ChunkManager,
+     pub frame: engine::FrameData,
+
      pub smilers: Vec<smiler::FollowCube>,
-     pub audio: kira::AudioManager,
-     pub sound: static_sound::StaticSoundData,
 }
 
 impl application::Application for Liminal
@@ -74,20 +75,21 @@ impl application::Application for Liminal
 
           let player = player::PlayerController::builder()
                .lookspeed(0.00125)
-               .movespeed(16.0)
+               .movespeed(12.0)
                .kinematics(kinematics::Kinematics::builder().up(glam::Vec3::Y).build())
                .collider(kinematics::BoxCollider::point_sides(
                     camera.inner.position.to_array(),
                     [0.45, 0.85, 0.45],
                ))
                .build();
+          let sounds = player::PlayerSoundController::new("./res/audio/")?;
+          let head_bobber = player::PlayerHeadBobber::new();
+          let mut audio = kira::AudioManager::new(kira::AudioManagerSettings::default())?;
+          sounds.ambience(&mut audio);
 
           let smilers = Vec::new();
 
           let frame = engine::FrameData::new();
-
-          let audio = kira::AudioManager::new(kira::AudioManagerSettings::default())?;
-          let sound = static_sound::StaticSoundData::from_file("./res/audio/beep.wav")?;
 
           render.register_bind_group_layout(
                context,
@@ -130,12 +132,15 @@ impl application::Application for Liminal
           Ok(Self {
                camera,
                player,
-               frame,
+               sounds,
+               head_bobber,
+
+               audio,
 
                world,
+               frame,
+
                smilers,
-               audio,
-               sound,
           })
      }
 
@@ -164,6 +169,10 @@ impl application::Application for Liminal
           if input.consume_key_press("digit2")
           {
                self.player.movespeed *= 2.0;
+          }
+          if input.consume_mouse_left_press()
+          {
+               self.sounds.interaction(&mut self.audio);
           }
 
           match self.player.collisions
@@ -211,8 +220,11 @@ impl application::Application for Liminal
                     self.player.kinematics.apply_drag(24.0, self.frame.dt);
                     self.player.collider =
                          self.player.kinematics.translate(self.player.collider, &self.world, self.frame.dt);
-                    self.camera.inner.position =
-                         self.player.collider.center() + glam::vec3(0.0, camera_offset, 0.0);
+                    self.camera.inner.position = self.player.collider.center()
+                         + glam::vec3(0.0, camera_offset, 0.0)
+                         + self.head_bobber.head_bob(&self.camera, &self.player.kinematics, self.frame.time);
+
+                    self.sounds.movement(&mut self.audio, &self.player.kinematics, self.frame.time);
                }
                | false =>
                {
@@ -258,11 +270,6 @@ impl application::Application for Liminal
           self.camera.inner.rotation = glam::Quat::from_rotation_z(0.0)
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
-
-          if input.consume_mouse_left_release()
-          {
-               self.audio.play(self.sound.clone().volume(0.33)).unwrap();
-          }
      }
 
      fn gfx_frame(
