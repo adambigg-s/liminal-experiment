@@ -31,5 +31,7 @@ impl terrain::BiomeTrait for DebuggingBiome
                     }
                }
           }
+
+          *chunk.get_mut(glam::IVec3::ZERO) = block::Block::Light;
      }
 }

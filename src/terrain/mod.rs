@@ -63,7 +63,7 @@ impl TerrainGenerator
                .biome_noise(
                     NoiseLayer::builder()
                          .offset(glam::DVec3::splat(0.0))
-                         .freq(glam::dvec3(0.5, 0.05, 0.5))
+                         .freq(glam::dvec3(0.5, 0.015, 0.5))
                          .build(),
                )
                .weird_noise(
@@ -91,12 +91,14 @@ impl TerrainGenerator
      {
           match (biome, weird)
           {
-               | (b, w) if b < 0.3 && w > 0.9 => Box::new(superliminal::SuperLiminal),
+               | (b, w) if b < 0.3 && w > 0.8 => Box::new(superliminal::SuperLiminal),
                | (b, w) if b > 0.6 && w < 0.3 => Box::new(pillars::Pillars),
                | (b, _) if b > 0.3 => Box::new(maze::Maze),
-               | (_, w) if w > 0.8 => Box::new(parkour::Parkour),
-               | (b, _) if b < 0.1 => Box::new(empty::Empty),
-               | _ => Box::new(pitfalls::Pitfalls),
+               // | (b, _) if b > 0.3 => Box::new(debugging_biome::DebuggingBiome),
+               | (_, w) if w > 0.6 => Box::new(pitfalls::Pitfalls),
+               | (b, _) if b < 0.15 => Box::new(empty::Empty),
+               | _ => Box::new(parkour::Parkour),
+               // | _ => Box::new(debugging_biome::DebuggingBiome),
           }
      }
 

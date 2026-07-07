@@ -25,9 +25,9 @@ impl terrain::BiomeTrait for Pillars
                {
                     let coord = glam::ivec3(x, size.y - 1, z);
                     *chunk.get_mut(coord) = block::Block::Plain;
-
                     let coord = glam::ivec3(x, size.y - 2, z);
                     *chunk.get_mut(coord) = block::Block::Plain;
+
                     if x % 8 == 0 && z % 8 == 0
                     {
                          *chunk.get_mut(coord) = block::Block::Light;

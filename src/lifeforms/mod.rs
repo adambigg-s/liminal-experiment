@@ -1,14 +1,17 @@
+pub mod smiler;
+
 use crate::engine::player;
+use crate::render;
 
 pub trait LifeForm
 {
+     fn new(context: &mut render::GfxContext, render: &mut render::GfxRenderer) -> Self;
+
      fn update(&self, player_info: &player::PlayerController, dt: f32);
 
-     fn special_event(&self, player_info: &player::PlayerController);
-}
+     fn gfx_sync(&self, context: &mut render::GfxContext, render: &mut render::GfxRenderer);
 
-#[derive(bon::Builder, Debug)]
-pub struct FollowCube
-{
-     pub health: u32,
+     fn special_event(&self, player_info: &player::PlayerController);
+
+     fn cleanup(&self);
 }

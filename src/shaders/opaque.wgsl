@@ -1,13 +1,14 @@
-const AMBIENT: f32 = 0.0825;
-// const AMBIENT: f32 = 0.0025;
+// const AMBIENT: f32 = 0.0825;
+const AMBIENT: f32 = 0.0025;
 const FADE_COLOR: vec3<f32> = vec3<f32>(0.0, 0.0, 0.0);
-// const FOG_START: f32 = 25.0;
-// const FOG_END: f32 = 100.0;
-const FOG_START: f32 = 100.0;
-const FOG_END: f32 = 1000.0;
+const FOG_START: f32 = 25.0;
+const FOG_END: f32 = 100.0;
+// const FOG_START: f32 = 100.0;
+// const FOG_END: f32 = 1000.0;
 const FOG_EXP: f32 = 1.0;
 const VICINITY_START: f32 = 7.5;
 const VICINITY_STRENGTH: f32 = 0.05;
+const BACKROOMS_LIGHT: vec4<f32> = vec4<f32>(1.0, 0.92, 0.65, 1.0);
 
 struct VertexIn {
     @location(0) pos: vec3<f32>,
@@ -70,7 +71,7 @@ fn fs_main(in: VertexOut) -> FragmentOutput {
     let ao = pow(in.ao, 0.0);
     var lum = pow(clamp(in.fil, AMBIENT, 1.0), 2.0);
     let vicinity_light = pow(vicinity_factor, 3.0) * VICINITY_STRENGTH;
-    let shaded_color = diffuse_color * ao * (lum + vicinity_light);
+    let shaded_color = diffuse_color * ao * (lum + vicinity_light) * BACKROOMS_LIGHT;
 
     let final_color = mix(shaded_color, vec4<f32>(FADE_COLOR, 1.0), fog_factor);
 

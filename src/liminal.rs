@@ -1,12 +1,15 @@
 use std::env;
 use std::sync;
 
+use kira::sound::static_sound;
+
 use crate::application;
 use crate::application::input;
 use crate::engine;
 use crate::engine::camera;
 use crate::engine::kinematics;
 use crate::engine::player;
+use crate::lifeforms::smiler;
 use crate::render;
 use crate::render::GfxCamera;
 use crate::render::resource;
@@ -16,7 +19,7 @@ use crate::visual::atlas;
 use crate::visual::pipelines;
 use crate::world::manager;
 
-#[derive(bon::Builder, Debug)]
+#[derive(bon::Builder)]
 pub struct Liminal
 {
      pub camera: camera::Camera,
@@ -24,6 +27,9 @@ pub struct Liminal
      pub frame: engine::FrameData,
 
      pub world: manager::ChunkManager,
+     pub smilers: Vec<smiler::FollowCube>,
+     pub audio: kira::AudioManager,
+     pub sound: static_sound::StaticSoundData,
 }
 
 impl application::Application for Liminal
@@ -41,12 +47,14 @@ impl application::Application for Liminal
      {
           let atlas = sync::Arc::new(atlas::TextureAtlas::new("./res/liminal/", 128)?);
           atlas.save("./res/liminal_atlas.png")?;
+
           let seed = env::args()
                .collect::<Vec<String>>()
                .get(1)
                .map(|val| val.parse::<u32>().unwrap_or(0))
                .unwrap_or(0);
           let terrain = terrain::TerrainGenerator::new(seed);
+
           let mut world = manager::ChunkManager::builder()
                .atlas(sync::Arc::clone(&atlas))
                .terrain(sync::Arc::new(terrain))
@@ -63,6 +71,7 @@ impl application::Application for Liminal
                .zfear(500.0)
                .build();
           camera.inner.position += glam::vec3(0.0, 3.0, 0.0);
+
           let player = player::PlayerController::builder()
                .lookspeed(0.00125)
                .movespeed(16.0)
@@ -72,7 +81,13 @@ impl application::Application for Liminal
                     [0.45, 0.85, 0.45],
                ))
                .build();
+
+          let smilers = Vec::new();
+
           let frame = engine::FrameData::new();
+
+          let audio = kira::AudioManager::new(kira::AudioManagerSettings::default())?;
+          let sound = static_sound::StaticSoundData::from_file("./res/audio/beep.wav")?;
 
           render.register_bind_group_layout(
                context,
@@ -118,6 +133,9 @@ impl application::Application for Liminal
                frame,
 
                world,
+               smilers,
+               audio,
+               sound,
           })
      }
 
@@ -177,7 +195,7 @@ impl application::Application for Liminal
                     }
                     if input.get_key_pres("shiftleft")
                     {
-                         frame_movement_speed *= 1.5;
+                         frame_movement_speed *= 1.75;
                     }
                     if input.get_key_pres("controlleft")
                     {
@@ -240,6 +258,11 @@ impl application::Application for Liminal
           self.camera.inner.rotation = glam::Quat::from_rotation_z(0.0)
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
+
+          if input.consume_mouse_left_release()
+          {
+               self.audio.play(self.sound.clone().volume(0.33)).unwrap();
+          }
      }
 
      fn gfx_frame(

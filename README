@@ -1,0 +1,23 @@
+================================================================================
+liminal-experiment
+================================================================================
+
+KEYBINDINGS
+-----------
+
+Escape     - quit
+Mouse      - rotational movement
+W, A, S, D - translational movement
+Click      - interact
+T          - toggle flashlight
+Y          - toggle noclip
+LShift     - sprint
+LCtrl      - crouch
++          - increase look sense
+-          - lower look sense
+
+TEXTURES
+--------
+
+https://github.com/amini-allight/backrooms-textures
+https://backrooms-freewriting.fandom.com/wiki/Almond_Water
