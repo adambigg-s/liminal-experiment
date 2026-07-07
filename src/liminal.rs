@@ -24,6 +24,7 @@ pub struct Liminal
      pub player: player::PlayerController,
      pub sounds: player::PlayerSoundController,
      pub head_bobber: player::PlayerHeadBobber,
+     pub flashlight: f32,
 
      pub audio: kira::AudioManager,
 
@@ -86,6 +87,7 @@ impl application::Application for Liminal
           let head_bobber = player::PlayerHeadBobber::new();
           let mut audio = kira::AudioManager::new(kira::AudioManagerSettings::default())?;
           sounds.ambience(&mut audio);
+          let flashlight = 0.0;
 
           let smilers = Vec::new();
 
@@ -99,6 +101,8 @@ impl application::Application for Liminal
                     resource::GfxBindingLayout::Uniform,
                     resource::GfxBindingLayout::Texture,
                     resource::GfxBindingLayout::Sampler,
+                    resource::GfxBindingLayout::Uniform,
+                    resource::GfxBindingLayout::Uniform,
                ],
           )?;
           render.register_pipeline::<pipelines::Opaque>(context, "terrain_pipe", &["global_layout"]);
@@ -116,6 +120,11 @@ impl application::Application for Liminal
                util::texture_image(context, &atlas.atlas, "Texture atlas"),
           );
           render.register_resource("texture_sampler", util::sampler(context, "Texture atlas sampler"));
+          render.register_resource(
+               "screen_ar_uni",
+               util::uniform::<f32>(context, "Screen aspect ratio uniform"),
+          );
+          render.register_resource("flashlight_uni", util::uniform::<f32>(context, "Flashlight toggle uni"));
 
           render.register_bind_group(
                context,
@@ -126,6 +135,8 @@ impl application::Application for Liminal
                     "camera_view_uni",
                     "texture_atlas",
                     "texture_sampler",
+                    "screen_ar_uni",
+                    "flashlight_uni",
                ],
           )?;
 
@@ -134,6 +145,7 @@ impl application::Application for Liminal
                player,
                sounds,
                head_bobber,
+               flashlight,
 
                audio,
 
@@ -169,6 +181,17 @@ impl application::Application for Liminal
           if input.consume_key_press("digit2")
           {
                self.player.movespeed *= 2.0;
+          }
+          if input.consume_key_press("keyt")
+          {
+               if self.flashlight == 0.0
+               {
+                    self.flashlight = 1.0;
+               }
+               else
+               {
+                    self.flashlight = 0.0;
+               }
           }
           if input.consume_mouse_left_press()
           {
@@ -298,6 +321,14 @@ impl application::Application for Liminal
           else
           {
                panic!();
+          }
+          if let Some(resource::GfxResource::Uniform(screen_ar)) = render.resources.get("screen_ar_uni")
+          {
+               screen_ar.write(context, &self.camera.ar);
+          }
+          if let Some(resource::GfxResource::Uniform(flashlight)) = render.resources.get("flashlight_uni")
+          {
+               flashlight.write(context, &self.flashlight);
           }
 
           self.world.render_chunks.iter().for_each(|&chunk_coord| {

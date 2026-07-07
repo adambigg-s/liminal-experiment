@@ -11,13 +11,14 @@ W, A, S, D - translational movement
 Click      - interact
 T          - toggle flashlight
 Y          - toggle noclip
+Q          - cycle mouse grab mode
 LShift     - sprint
 LCtrl      - crouch
 +          - increase look sense
 -          - lower look sense
 
-TEXTURES
---------
+TEXTURE & RESOURCE
+------------------
 
 https://github.com/amini-allight/backrooms-textures
 https://backrooms-freewriting.fandom.com/wiki/Almond_Water

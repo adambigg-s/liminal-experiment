@@ -1,4 +1,3 @@
-// const AMBIENT: f32 = 0.0825;
 const AMBIENT: f32 = 0.0025;
 
 const FADE_COLOR: vec3<f32> = vec3<f32>(0.0025, 0.0, 0.0);
@@ -6,13 +5,15 @@ const FADE_COLOR: vec3<f32> = vec3<f32>(0.0025, 0.0, 0.0);
 const FOG_EXP: f32 = 1.0;
 const FOG_START: f32 = 25.0;
 const FOG_END: f32 = 100.0;
-// const FOG_START: f32 = 100.0;
-// const FOG_END: f32 = 1000.0;
 
 const VICINITY_START: f32 = 7.5;
 const VICINITY_STRENGTH: f32 = 0.05;
 
 const BACKROOMS_LIGHT: vec4<f32> = vec4<f32>(1.0, 0.90, 0.60, 1.0);
+
+const FL_INNER: f32 = 0.25;
+const FL_OUTER: f32 = 0.5;
+const FL_STRENGTH: f32 = 0.75;
 
 struct VertexIn {
     @location(0) pos: vec3<f32>,
@@ -58,6 +59,8 @@ struct FragmentOutput {
 
 @group(0) @binding(2) var texture_atlas: texture_2d<f32>;
 @group(0) @binding(3) var sample_atlas: sampler;
+@group(0) @binding(4) var<uniform> screen_ar: f32;
+@group(0) @binding(5) var<uniform> flashlight: f32;
 
 @fragment
 fn fs_main(in: VertexOut) -> FragmentOutput {
@@ -72,10 +75,17 @@ fn fs_main(in: VertexOut) -> FragmentOutput {
     let fog_factor = pow(clamp((depth - FOG_START) / (FOG_END - FOG_START), 0.0, 1.0), FOG_EXP);
     let vicinity_factor = clamp(1.0 - depth / VICINITY_START, 0.0, 1.0);
 
-    let ao = pow(in.ao, 0.0);
+    let center = vec2<f32>(in.ndc.x * screen_ar, in.ndc.y);
+    let dist = length(center);
+    let spot_factor = smoothstep(FL_OUTER, FL_INNER, dist);
+    let fl_attenuation = pow(clamp(1.0 - (depth / FOG_END), 0.0, 1.0), 3.0);
+    let fl_light = spot_factor * fl_attenuation * FL_STRENGTH * flashlight;
+
+    let ao = pow(in.ao, 1.0);
     var lum = pow(clamp(in.fil, AMBIENT, 1.0), 2.0);
     let vicinity_light = pow(vicinity_factor, 3.0) * VICINITY_STRENGTH;
-    let shaded_color = diffuse_color * ao * (lum + vicinity_light) * BACKROOMS_LIGHT;
+    let total_light = lum + vicinity_light + fl_light;
+    let shaded_color = diffuse_color * ao * total_light * BACKROOMS_LIGHT;
 
     let final_color = mix(shaded_color, vec4<f32>(FADE_COLOR, 1.0), fog_factor);
 
