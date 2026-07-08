@@ -11,6 +11,7 @@ const VICINITY_STRENGTH: f32 = 0.05;
 
 const BACKROOMS_LIGHT: vec4<f32> = vec4<f32>(1.0, 0.90, 0.60, 1.0);
 
+const FL_END: f32 = 50.0;
 const FL_INNER: f32 = 0.25;
 const FL_OUTER: f32 = 0.5;
 const FL_STRENGTH: f32 = 0.75;
@@ -78,7 +79,7 @@ fn fs_main(in: VertexOut) -> FragmentOutput {
     let center = vec2<f32>(in.ndc.x * screen_ar, in.ndc.y);
     let dist = length(center);
     let spot_factor = smoothstep(FL_OUTER, FL_INNER, dist);
-    let fl_attenuation = pow(clamp(1.0 - (depth / FOG_END), 0.0, 1.0), 3.0);
+    let fl_attenuation = pow(clamp(1.0 - (depth / FL_END), 0.0, 1.0), 3.0);
     let fl_light = spot_factor * fl_attenuation * FL_STRENGTH * flashlight;
 
     let ao = pow(in.ao, 1.0);

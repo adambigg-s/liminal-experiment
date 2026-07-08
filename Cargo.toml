@@ -29,3 +29,7 @@ opt-level = 1
 incremental = true
 codegen-units = 256
 
+[[bin]]
+name = "backrooms_liminal"
+path = "./src/main.rs"
+

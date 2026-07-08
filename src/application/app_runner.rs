@@ -264,7 +264,6 @@ where
                          {
                               state.window.set_cursor_grab(window::CursorGrabMode::None).unwrap();
                               state.window.set_cursor_visible(true);
-                              state.input.consume_mouse_delta();
                          }
                          | input::MouseMode::Grab =>
                          {
@@ -275,7 +274,16 @@ where
                          {
                               state.window.set_cursor_grab(window::CursorGrabMode::None).unwrap();
                               state.window.set_cursor_visible(true);
+                              state.input.consume_mouse_delta();
                          }
+                    }
+
+                    match state.input.request_fullscreen
+                    {
+                         | true =>
+                         {}
+                         | false =>
+                         {}
                     }
 
                     if let Err(err) = state.update()

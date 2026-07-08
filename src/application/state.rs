@@ -60,8 +60,8 @@ where
      pub fn render(&mut self) -> anyhow::Result<()>
      {
           self.window.request_redraw();
+
           self.inner_state.gfx_frame(&self.input, &mut self.gfx_context, &mut self.gfx_render);
-          self.inner_state.gfx_prepass(&self.input, &mut self.gfx_context, &mut self.gfx_render);
 
           let output = match self.gfx_context.surface.get_current_texture()
           {
@@ -79,16 +79,33 @@ where
                | wgpu::CurrentSurfaceTexture::Success(surface_texture)
                | wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => surface_texture,
           };
+          let surface_view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
           let mut encoder = self.gfx_context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                label: Some("Command encoder"),
           });
 
+          self.inner_state.gfx_prepass(
+               &self.input,
+               &mut self.gfx_context,
+               &mut self.gfx_render,
+               &mut encoder,
+          );
+
+          let render_target = if let Some(postpass_texture) = &self.gfx_render.postpass_texture
+          {
+               &postpass_texture.view
+          }
+          else
+          {
+               &surface_view
+          };
+
           {
                let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("Render pass"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                         view: &output.texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                         view: render_target,
                          depth_slice: None,
                          resolve_target: None,
                          ops: wgpu::Operations {
@@ -119,7 +136,13 @@ where
                self.gfx_render.render(&mut render_pass);
           }
 
-          self.inner_state.gfx_postpass(&self.input, &mut self.gfx_context, &mut self.gfx_render);
+          self.inner_state.gfx_postpass(
+               &self.input,
+               &mut self.gfx_context,
+               &mut self.gfx_render,
+               &mut encoder,
+               &surface_view,
+          );
 
           self.gfx_context.queue.submit([encoder.finish()]);
           output.present();

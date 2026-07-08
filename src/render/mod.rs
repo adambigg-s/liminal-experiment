@@ -139,6 +139,8 @@ pub struct GfxRenderer
 
      pub depth_texture: Option<resource::GfxTexture>,
 
+     pub postpass_texture: Option<resource::GfxTexture>,
+
      #[builder(default)]
      pub render_queue: Vec<GfxDrawCall>,
 }
@@ -153,6 +155,7 @@ impl GfxRenderer
      pub fn config_changed(&mut self, context: &GfxContext) -> anyhow::Result<()>
      {
           self.depth_texture = Some(resource::GfxTexture::new_depth(context, "Main depth")?);
+          self.postpass_texture = Some(resource::GfxTexture::new_render_target(context, "Postpass target")?);
           Ok(())
      }
 

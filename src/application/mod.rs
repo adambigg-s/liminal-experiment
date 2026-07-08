@@ -39,9 +39,10 @@ where
           input: &input::Input,
           gfx_context: &mut render::GfxContext,
           gfx_render: &mut render::GfxRenderer,
+          gfx_encoder: &mut wgpu::CommandEncoder,
      )
      {
-          _ = (input, gfx_context, gfx_render);
+          _ = (input, gfx_context, gfx_render, gfx_encoder);
      }
 
      fn gfx_postpass(
@@ -49,9 +50,11 @@ where
           input: &input::Input,
           gfx_context: &mut render::GfxContext,
           gfx_render: &mut render::GfxRenderer,
+          gfx_encoder: &mut wgpu::CommandEncoder,
+          surface_view: &wgpu::TextureView,
      )
      {
-          _ = (input, gfx_context, gfx_render);
+          _ = (input, gfx_context, gfx_render, gfx_encoder, surface_view);
      }
 
      fn immediate_ui(&mut self, gui: &mut gui::GuiContext)

@@ -45,6 +45,7 @@ pub struct Input
      pub mouse_delta: (f32, f32),
      pub request_quit: bool,
      pub request_screenshot: bool,
+     pub request_fullscreen: bool,
      pub request_grab: MouseMode,
 }
 

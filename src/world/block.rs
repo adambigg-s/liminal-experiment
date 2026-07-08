@@ -29,11 +29,11 @@ pub enum Block
 {
      #[default]
      Air,
-     Plain,
      Light,
+     Plain,
+     AlmondWater,
      Distressed1,
      Distressed2,
-     AlmondWater,
      Corrupt1,
      Corrupt2,
      BlockCounter,
@@ -43,11 +43,11 @@ impl Block
 {
      const ALL: [Block; Block::BlockCounter as usize] = [
           Block::Air,
-          Block::Plain,
           Block::Light,
+          Block::AlmondWater,
+          Block::Plain,
           Block::Distressed1,
           Block::Distressed2,
-          Block::AlmondWater,
           Block::Corrupt1,
           Block::Corrupt2,
      ];

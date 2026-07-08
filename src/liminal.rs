@@ -105,7 +105,16 @@ impl application::Application for Liminal
                     resource::GfxBindingLayout::Uniform,
                ],
           )?;
+          render.register_bind_group_layout(
+               context,
+               "dither_layout",
+               &[
+                    resource::GfxBindingLayout::Texture,
+                    resource::GfxBindingLayout::Sampler,
+               ],
+          )?;
           render.register_pipeline::<pipelines::Opaque>(context, "terrain_pipe", &["global_layout"]);
+          render.register_pipeline::<pipelines::Dither>(context, "dither_pipe", &["dither_layout"]);
 
           render.register_resource(
                "camera_view_proj_uni",
@@ -125,6 +134,7 @@ impl application::Application for Liminal
                util::uniform::<f32>(context, "Screen aspect ratio uniform"),
           );
           render.register_resource("flashlight_uni", util::uniform::<f32>(context, "Flashlight toggle uni"));
+          render.register_resource("dither_sampler", util::sampler(context, "Dither sampler"));
 
           render.register_bind_group(
                context,
@@ -196,6 +206,11 @@ impl application::Application for Liminal
           if input.consume_mouse_left_press()
           {
                self.sounds.interaction(&mut self.audio);
+          }
+
+          if input.consume_mouse_right_press()
+          {
+               input.request_fullscreen = !input.request_fullscreen
           }
 
           match self.player.collisions
@@ -309,18 +324,10 @@ impl application::Application for Liminal
           {
                camera_uni.write(context, &self.camera.view_proj());
           }
-          else
-          {
-               panic!();
-          };
           if let Some(resource::GfxResource::Uniform(camera_view_uni)) =
                render.resources.get("camera_view_uni")
           {
                camera_view_uni.write(context, &self.camera.view());
-          }
-          else
-          {
-               panic!();
           }
           if let Some(resource::GfxResource::Uniform(screen_ar)) = render.resources.get("screen_ar_uni")
           {
@@ -339,4 +346,94 @@ impl application::Application for Liminal
                });
           });
      }
+
+     fn gfx_postpass(
+          &mut self,
+          _input: &input::Input,
+          _gfx_context: &mut render::GfxContext,
+          _gfx_render: &mut render::GfxRenderer,
+          _gfx_encoder: &mut wgpu::CommandEncoder,
+          _surface_view: &wgpu::TextureView,
+     )
+     {
+     }
+
+     // fn gfx_postpass(
+     //      &mut self,
+     //      input: &input::Input,
+     //      gfx_context: &mut render::GfxContext,
+     //      gfx_render: &mut render::GfxRenderer,
+     //      gfx_encoder: &mut wgpu::CommandEncoder,
+     //      surface_view: &wgpu::TextureView,
+     // )
+     // {
+     //      // 1. Grab references to the necessary resources
+     //      let Some(postpass_texture) = &gfx_render.postpass_texture
+     //      else
+     //      {
+     //           log::error!("");
+     //           return;
+     //      };
+
+     //      let Some(layout) = gfx_render.bind_group_layouts.get("dither_layout")
+     //      else
+     //      {
+     //           log::error!("");
+     //           return;
+     //      };
+
+     //      let Some(resource::GfxResource::Sampler(sampler)) = gfx_render.resources.get("dither_sampler")
+     //      else
+     //      {
+     //           log::error!("");
+     //           return;
+     //      };
+
+     //      let Some(pipeline) = gfx_render.pipelines.get("dither_pipe")
+     //      else
+     //      {
+     //           log::error!("");
+     //           return;
+     //      };
+
+     //      // 2. Build the bind group directly using the transparent wgpu API.
+     //      // This avoids the ownership errors of the engine's resource map and safely
+     //      // maps the current frame's offscreen texture view on the fly.
+     //      let bind_group = gfx_context.device.create_bind_group(&wgpu::BindGroupDescriptor {
+     //           label: Some("Dither Bind Group"),
+     //           layout,
+     //           entries: &[
+     //                wgpu::BindGroupEntry {
+     //                     binding: 0,
+     //                     resource: wgpu::BindingResource::TextureView(&postpass_texture.view),
+     //                },
+     //                wgpu::BindGroupEntry {
+     //                     binding: 1,
+     //                     resource: wgpu::BindingResource::Sampler(sampler),
+     //                },
+     //           ],
+     //      });
+
+     //      // 3. Execute the Render Pass
+     //      let mut render_pass = gfx_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+     //           label: Some("Postpass render pass"),
+     //           color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+     //                view: surface_view, // Drawing directly to the screen
+     //                depth_slice: None,
+     //                resolve_target: None,
+     //                ops: wgpu::Operations {
+     //                     load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+     //                     store: wgpu::StoreOp::Store,
+     //                },
+     //           })],
+     //           depth_stencil_attachment: None,
+     //           timestamp_writes: None,
+     //           occlusion_query_set: None,
+     //           multiview_mask: None,
+     //      });
+
+     //      render_pass.set_pipeline(pipeline);
+     //      render_pass.set_bind_group(0, &bind_group, &[]);
+     //      render_pass.draw(0 .. 3, 0 .. 1); // Triggers the fullscreen triang
+     // }
 }
