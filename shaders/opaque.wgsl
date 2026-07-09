@@ -1,20 +1,22 @@
-const AMBIENT: f32 = 0.0025;
+const BACKROOMS_EPS: f32 = 1e-3;
 
-const FADE_COLOR: vec3<f32> = vec3<f32>(0.0025, 0.0, 0.0);
+const AMBIENT: f32 = 0.005;
 
-const FOG_EXP: f32 = 1.0;
+const FADE_COLOR: vec3<f32> = vec3<f32>(0.005, 0.0, 0.0);
+
+const FOG_EXP: f32 = 1.5;
 const FOG_START: f32 = 25.0;
-const FOG_END: f32 = 100.0;
+const FOG_END: f32 = 125.0;
 
 const VICINITY_START: f32 = 7.5;
 const VICINITY_STRENGTH: f32 = 0.05;
 
 const BACKROOMS_LIGHT: vec4<f32> = vec4<f32>(1.0, 0.90, 0.60, 1.0);
 
-const FL_END: f32 = 50.0;
+const FL_END: f32 = 25.0;
 const FL_INNER: f32 = 0.25;
-const FL_OUTER: f32 = 0.5;
-const FL_STRENGTH: f32 = 0.75;
+const FL_OUTER: f32 = 0.75;
+const FL_STRENGTH: f32 = 0.5;
 
 struct VertexIn {
     @location(0) pos: vec3<f32>,
@@ -62,13 +64,14 @@ struct FragmentOutput {
 @group(0) @binding(3) var sample_atlas: sampler;
 @group(0) @binding(4) var<uniform> screen_ar: f32;
 @group(0) @binding(5) var<uniform> flashlight: f32;
+@group(0) @binding(6) var<uniform> time: f32;
 
 @fragment
 fn fs_main(in: VertexOut) -> FragmentOutput {
     var out: FragmentOutput;
 
     let diffuse_color = textureSample(texture_atlas, sample_atlas, in.tex);
-    if diffuse_color.a == 0.0 {
+    if diffuse_color.a < BACKROOMS_EPS {
         discard;
     }
 
@@ -78,15 +81,20 @@ fn fs_main(in: VertexOut) -> FragmentOutput {
 
     let center = vec2<f32>(in.ndc.x * screen_ar, in.ndc.y);
     let dist = length(center);
-    let spot_factor = smoothstep(FL_OUTER, FL_INNER, dist);
-    let fl_attenuation = pow(clamp(1.0 - (depth / FL_END), 0.0, 1.0), 3.0);
+    let spot_factor = pow(smoothstep(FL_OUTER, FL_INNER, dist), 2.0);
+    let fl_attenuation = pow(clamp(1.0 - pow((depth / FL_END), 2.0), 0.0, 1.0), 4.0);
     let fl_light = spot_factor * fl_attenuation * FL_STRENGTH * flashlight;
 
     let ao = pow(in.ao, 1.0);
     var lum = pow(clamp(in.fil, AMBIENT, 1.0), 2.0);
     let vicinity_light = pow(vicinity_factor, 3.0) * VICINITY_STRENGTH;
-    let total_light = lum + vicinity_light + fl_light;
-    let shaded_color = diffuse_color * ao * total_light * BACKROOMS_LIGHT;
+
+    var total_light = (lum + vicinity_light + fl_light) * BACKROOMS_LIGHT;
+    if in.fil > 1.0 - BACKROOMS_EPS {
+        total_light = vec4<f32>(1.0);
+    }
+
+    let shaded_color = diffuse_color * ao * total_light;
 
     let final_color = mix(shaded_color, vec4<f32>(FADE_COLOR, 1.0), fog_factor);
 

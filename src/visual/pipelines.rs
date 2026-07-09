@@ -14,9 +14,7 @@ impl render::GfxPipeline for Opaque
      {
           let shader = context.device.create_shader_module(wgpu::ShaderModuleDescriptor {
                label: Some("Opaque shader"),
-               source: wgpu::ShaderSource::Wgsl(
-                    fs::read_to_string("./src/shaders/opaque.wgsl").unwrap().into(),
-               ),
+               source: wgpu::ShaderSource::Wgsl(fs::read_to_string("./shaders/opaque.wgsl").unwrap().into()),
           });
 
           let layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -77,9 +75,7 @@ impl render::GfxPipeline for Dither
      {
           let shader = context.device.create_shader_module(wgpu::ShaderModuleDescriptor {
                label: Some("Dither shader"),
-               source: wgpu::ShaderSource::Wgsl(
-                    fs::read_to_string("./src/shaders/dither.wgsl").unwrap().into(),
-               ),
+               source: wgpu::ShaderSource::Wgsl(fs::read_to_string("./shaders/dither.wgsl").unwrap().into()),
           });
 
           let layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

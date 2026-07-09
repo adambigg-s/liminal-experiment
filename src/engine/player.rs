@@ -18,6 +18,24 @@ pub struct PlayerController
      pub collisions: bool,
 }
 
+impl PlayerController
+{
+     pub fn jiggle_free<Collider>(&mut self, world: &Collider)
+     where
+          Collider: kinematics::Collision<Collider = kinematics::BoxCollider>,
+     {
+          while world.collides(self.collider)
+          {
+               self.collider = self.collider
+                    + glam::vec3(
+                         rand::random_range(-1.0 ..= 1.0),
+                         rand::random_range(-1.0 ..= 1.0),
+                         rand::random_range(-1.0 ..= 1.0),
+                    );
+          }
+     }
+}
+
 #[derive(bon::Builder, Debug, Default)]
 pub struct PlayerHeadBobber
 {
@@ -158,11 +176,10 @@ impl PlayerSoundController
           if diff > self.sound_delay / (self.velocity_coeff * kinematics.velocity.length())
                && !kinematics.flying
           {
-               audio.play(
-                    self.walking_sound[self.last_sound % self.walking_sound.len()]
-                         .clone()
-                         .volume(rand::random_range(0.1 .. 0.9)),
-               )
+               audio.play(self.walking_sound[self.last_sound % self.walking_sound.len()].clone().volume(
+                    rand::random_range(-20.0 .. -15.0)
+                         + (self.velocity_coeff * kinematics.velocity.length()).powf(2.0),
+               ))
                .unwrap();
                self.last_sound += 1;
                self.last_sound_time = time;

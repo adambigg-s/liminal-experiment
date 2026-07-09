@@ -1,4 +1,5 @@
 use std::env;
+use std::range;
 use std::sync;
 
 use crate::application;
@@ -7,6 +8,8 @@ use crate::engine;
 use crate::engine::camera;
 use crate::engine::kinematics;
 use crate::engine::player;
+use crate::engine::ray;
+use crate::engine::ray::Cast;
 use crate::lifeforms::smiler;
 use crate::render;
 use crate::render::GfxCamera;
@@ -15,6 +18,7 @@ use crate::render::util;
 use crate::terrain;
 use crate::visual::atlas;
 use crate::visual::pipelines;
+use crate::world::block;
 use crate::world::manager;
 
 #[derive(bon::Builder)]
@@ -74,15 +78,17 @@ impl application::Application for Liminal
                .build();
           camera.inner.position += glam::vec3(0.0, 3.0, 0.0);
 
-          let player = player::PlayerController::builder()
+          let mut player = player::PlayerController::builder()
                .lookspeed(0.00125)
-               .movespeed(12.0)
+               .movespeed(12.0 * 2f32.powf(3.0))
                .kinematics(kinematics::Kinematics::builder().up(glam::Vec3::Y).build())
                .collider(kinematics::BoxCollider::point_sides(
                     camera.inner.position.to_array(),
                     [0.45, 0.85, 0.45],
                ))
+               .collisions(true)
                .build();
+          player.jiggle_free(&world);
           let sounds = player::PlayerSoundController::new("./res/audio/")?;
           let head_bobber = player::PlayerHeadBobber::new();
           let mut audio = kira::AudioManager::new(kira::AudioManagerSettings::default())?;
@@ -103,6 +109,7 @@ impl application::Application for Liminal
                     resource::GfxBindingLayout::Sampler,
                     resource::GfxBindingLayout::Uniform,
                     resource::GfxBindingLayout::Uniform,
+                    resource::GfxBindingLayout::Uniform,
                ],
           )?;
           render.register_bind_group_layout(
@@ -114,7 +121,11 @@ impl application::Application for Liminal
                ],
           )?;
           render.register_pipeline::<pipelines::Opaque>(context, "terrain_pipe", &["global_layout"]);
-          render.register_pipeline::<pipelines::Dither>(context, "dither_pipe", &["dither_layout"]);
+          render.register_pipeline::<pipelines::Dither>(
+               context,
+               "dither_pipe",
+               &["global_layout", "dither_layout"],
+          );
 
           render.register_resource(
                "camera_view_proj_uni",
@@ -135,6 +146,7 @@ impl application::Application for Liminal
           );
           render.register_resource("flashlight_uni", util::uniform::<f32>(context, "Flashlight toggle uni"));
           render.register_resource("dither_sampler", util::sampler(context, "Dither sampler"));
+          render.register_resource("time_uni", util::uniform::<f32>(context, "Global time uniform"));
 
           render.register_bind_group(
                context,
@@ -147,6 +159,7 @@ impl application::Application for Liminal
                     "texture_sampler",
                     "screen_ar_uni",
                     "flashlight_uni",
+                    "time_uni",
                ],
           )?;
 
@@ -184,13 +197,21 @@ impl application::Application for Liminal
           {
                self.player.collisions = !self.player.collisions;
           }
-          if input.consume_key_press("digit1")
+          if input.consume_key_press("bracketleft")
           {
                self.player.movespeed *= 0.5;
           }
-          if input.consume_key_press("digit2")
+          if input.consume_key_press("bracketright")
           {
                self.player.movespeed *= 2.0;
+          }
+          if input.consume_key_press("minus")
+          {
+               self.player.lookspeed /= 1.1;
+          }
+          if input.consume_key_press("equal")
+          {
+               self.player.lookspeed *= 1.1;
           }
           if input.consume_key_press("keyt")
           {
@@ -205,12 +226,20 @@ impl application::Application for Liminal
           }
           if input.consume_mouse_left_press()
           {
-               self.sounds.interaction(&mut self.audio);
-          }
-
-          if input.consume_mouse_right_press()
-          {
-               input.request_fullscreen = !input.request_fullscreen
+               let ray = ray::Ray {
+                    origin: self.camera.inner.position,
+                    direction: self.camera.inner.forward(),
+                    tspan: range::Range {
+                         start: 0.0,
+                         end: 10.0,
+                    },
+               };
+               if let Some(hit) = self.world.cast(ray)
+                    && hit.block == block::Block::AlmondWater
+               {
+                    self.sounds.interaction(&mut self.audio);
+                    self.world.modify(hit.position, block::Block::empty());
+               }
           }
 
           match self.player.collisions
@@ -337,6 +366,10 @@ impl application::Application for Liminal
           {
                flashlight.write(context, &self.flashlight);
           }
+          if let Some(resource::GfxResource::Uniform(time)) = render.resources.get("time_uni")
+          {
+               time.write(context, &self.frame.time);
+          }
 
           self.world.render_chunks.iter().for_each(|&chunk_coord| {
                render.queue(render::GfxDrawCall {
@@ -349,91 +382,81 @@ impl application::Application for Liminal
 
      fn gfx_postpass(
           &mut self,
-          _input: &input::Input,
-          _gfx_context: &mut render::GfxContext,
-          _gfx_render: &mut render::GfxRenderer,
-          _gfx_encoder: &mut wgpu::CommandEncoder,
-          _surface_view: &wgpu::TextureView,
+          _: &input::Input,
+          gfx_context: &mut render::GfxContext,
+          gfx_render: &mut render::GfxRenderer,
+          gfx_encoder: &mut wgpu::CommandEncoder,
+          surface_view: &wgpu::TextureView,
      )
      {
+          let Some(postpass_texture) = &gfx_render.postpass_texture
+          else
+          {
+               log::error!("Attempt to complete graphics postpass without a configured postpass texture");
+               return;
+          };
+          let Some(layout) = gfx_render.bind_group_layouts.get("dither_layout")
+          else
+          {
+               log::error!("Attempt to grab nonexistant layout in postpass");
+               return;
+          };
+          let Some(resource::GfxResource::Sampler(sampler)) = gfx_render.resources.get("dither_sampler")
+          else
+          {
+               log::error!("Attempt to grab nonexistant sampler in postpass");
+               return;
+          };
+          let Some(pipeline) = gfx_render.pipelines.get("dither_pipe")
+          else
+          {
+               log::error!("Attempt to grab nonexistant pipeline in postpass");
+               return;
+          };
+          let Some(global_bg) = gfx_render.bind_groups.get("global_bg")
+          else
+          {
+               log::error!("Attempt to grab nonexistant global bindgroup in postpass");
+               return;
+          };
+
+          let bind_group = gfx_context.device.create_bind_group(&wgpu::BindGroupDescriptor {
+               label: Some("Dither postpass bind group"),
+               layout,
+               entries: &[
+                    wgpu::BindGroupEntry {
+                         binding: 0,
+                         resource: wgpu::BindingResource::TextureView(&postpass_texture.view),
+                    },
+                    wgpu::BindGroupEntry {
+                         binding: 1,
+                         resource: wgpu::BindingResource::Sampler(sampler),
+                    },
+               ],
+          });
+
+          {
+               let mut render_pass = gfx_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Postpass render pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                         view: surface_view,
+                         depth_slice: None,
+                         resolve_target: None,
+                         ops: wgpu::Operations {
+                              load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                              store: wgpu::StoreOp::Store,
+                         },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                    multiview_mask: None,
+               });
+
+               render_pass.set_pipeline(pipeline);
+               render_pass.set_bind_group(0, global_bg, &[]);
+               render_pass.set_bind_group(1, &bind_group, &[]);
+               render_pass.draw(0 .. 3, 0 .. 1);
+          }
      }
-
-     // fn gfx_postpass(
-     //      &mut self,
-     //      input: &input::Input,
-     //      gfx_context: &mut render::GfxContext,
-     //      gfx_render: &mut render::GfxRenderer,
-     //      gfx_encoder: &mut wgpu::CommandEncoder,
-     //      surface_view: &wgpu::TextureView,
-     // )
-     // {
-     //      // 1. Grab references to the necessary resources
-     //      let Some(postpass_texture) = &gfx_render.postpass_texture
-     //      else
-     //      {
-     //           log::error!("");
-     //           return;
-     //      };
-
-     //      let Some(layout) = gfx_render.bind_group_layouts.get("dither_layout")
-     //      else
-     //      {
-     //           log::error!("");
-     //           return;
-     //      };
-
-     //      let Some(resource::GfxResource::Sampler(sampler)) = gfx_render.resources.get("dither_sampler")
-     //      else
-     //      {
-     //           log::error!("");
-     //           return;
-     //      };
-
-     //      let Some(pipeline) = gfx_render.pipelines.get("dither_pipe")
-     //      else
-     //      {
-     //           log::error!("");
-     //           return;
-     //      };
-
-     //      // 2. Build the bind group directly using the transparent wgpu API.
-     //      // This avoids the ownership errors of the engine's resource map and safely
-     //      // maps the current frame's offscreen texture view on the fly.
-     //      let bind_group = gfx_context.device.create_bind_group(&wgpu::BindGroupDescriptor {
-     //           label: Some("Dither Bind Group"),
-     //           layout,
-     //           entries: &[
-     //                wgpu::BindGroupEntry {
-     //                     binding: 0,
-     //                     resource: wgpu::BindingResource::TextureView(&postpass_texture.view),
-     //                },
-     //                wgpu::BindGroupEntry {
-     //                     binding: 1,
-     //                     resource: wgpu::BindingResource::Sampler(sampler),
-     //                },
-     //           ],
-     //      });
-
-     //      // 3. Execute the Render Pass
-     //      let mut render_pass = gfx_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-     //           label: Some("Postpass render pass"),
-     //           color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-     //                view: surface_view, // Drawing directly to the screen
-     //                depth_slice: None,
-     //                resolve_target: None,
-     //                ops: wgpu::Operations {
-     //                     load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-     //                     store: wgpu::StoreOp::Store,
-     //                },
-     //           })],
-     //           depth_stencil_attachment: None,
-     //           timestamp_writes: None,
-     //           occlusion_query_set: None,
-     //           multiview_mask: None,
-     //      });
-
-     //      render_pass.set_pipeline(pipeline);
-     //      render_pass.set_bind_group(0, &bind_group, &[]);
-     //      render_pass.draw(0 .. 3, 0 .. 1); // Triggers the fullscreen triang
-     // }
 }

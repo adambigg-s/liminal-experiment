@@ -93,12 +93,11 @@ impl TerrainGenerator
           {
                | (b, w) if b < 0.3 && w > 0.8 => Box::new(superliminal::SuperLiminal),
                | (b, w) if b > 0.4 && w < 0.3 => Box::new(pillars::Pillars),
-               | (b, _) if b > 0.3 => Box::new(maze::Maze),
-               // | (b, _) if b > 0.3 => Box::new(debugging_biome::DebuggingBiome),
+               | (b, _) if b > 0.7 => Box::new(parkour::Parkour),
                | (_, w) if w > 0.55 => Box::new(pitfalls::Pitfalls),
-               | (b, _) if b < 0.25 => Box::new(empty::Empty),
-               | _ => Box::new(parkour::Parkour),
-               // | _ => Box::new(debugging_biome::DebuggingBiome),
+               | (b, _) if b < 0.15 => Box::new(empty::Empty),
+               // | _ => Box::new(maze::Maze),
+               | _ => Box::new(debugging_biome::DebuggingBiome),
           }
      }
 
