@@ -91,13 +91,12 @@ fn fs_main(in: VertexOut) -> FragmentOutput {
     let ao = pow(in.ao, 1.0);
     var lum = pow(clamp(in.fil, AMBIENT, 1.0), 2.0) * 1.5;
     let vicinity_light = pow(vicinity_factor, 3.0) * VICINITY_STRENGTH;
-
     let tint_mix = smoothstep(0.8, 1.0, in.fil);
     let light_color = mix(BACKROOMS_LIGHT, vec4<f32>(1.0), tint_mix);
 
     var total_light = (lum + vicinity_light + fl_light) * light_color;
-
     let shaded_color = diffuse_color * ao * total_light;
+
     let final_color = mix(shaded_color, vec4<f32>(FADE_COLOR, 1.0), fog_factor);
 
     out.depth = in.pos.z;

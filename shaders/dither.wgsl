@@ -1,3 +1,5 @@
+const PI: f32 = cos(-1.0);
+
 struct VertexOutput {
     @builtin(position) pos: vec4<f32>,
     @location(0) tex: vec2<f32>,
@@ -44,7 +46,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let y = (coord.y / 2) % 4;
     let dither = BAYER_DITHER[x][y];
 
-    let spread = 0.25 + cos(time) * 0.125;
+    let spread = 0.25 + cos(time * PI) * 0.125;
     let dither_noise = spread * (dither - 0.5);
     let intensity = dot(color.rgb, vec3<f32>(1.0));
     let adjusted_color = clamp(color.rgb + vec3<f32>(dither_noise) * intensity, vec3<f32>(0.0), vec3<f32>(1.0));

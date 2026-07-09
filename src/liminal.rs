@@ -66,7 +66,7 @@ impl application::Application for Liminal
           let mut world = manager::ChunkManager::builder()
                .atlas(sync::Arc::clone(&atlas))
                .terrain(sync::Arc::new(terrain))
-               .view_distance(196)
+               .view_distance(256)
                .chunk_height(8)
                .chunk_width(32)
                .view_coefficient(glam::usizevec3(1, 4, 1))
@@ -80,6 +80,7 @@ impl application::Application for Liminal
                .zfear(500.0)
                .build();
           camera.inner.position += glam::vec3(0.0, 3.0, 0.0);
+          camera.update_rotation(0.1, 0.1, 0.1);
 
           let player = player::PlayerController::builder()
                .lookspeed(0.00125)
@@ -191,9 +192,9 @@ impl application::Application for Liminal
           self.frame.update();
           self.world.update_chunks(self.camera.inner.position, self.frame.dt);
 
-          if self.almond_waters > 50 || self.player.collider.center().y > 100.0
+          if self.almond_waters > 100 || self.player.collider.center().y > 100.0
           {
-               log::error!("Nice job! You escaped by finding the 50 almond waters or climbing 100 meters");
+               log::error!("Nice job! You escaped by finding the 100 almond waters or climbing 100 meters");
                input.request_quit = !input.request_quit;
           }
 
@@ -254,7 +255,7 @@ impl application::Application for Liminal
                     self.world.modify(hit.position, block::Block::empty());
                     self.almond_waters += 1;
 
-                    if rand::random_bool(0.025)
+                    if rand::random_bool(0.05)
                     {
                          self.sounds.named_sound_directional(
                               &mut self.audio,
