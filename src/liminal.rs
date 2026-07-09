@@ -1,6 +1,8 @@
 use std::env;
 use std::range;
 use std::sync;
+use std::thread;
+use std::time;
 
 use crate::application;
 use crate::application::input;
@@ -29,6 +31,7 @@ pub struct Liminal
      pub sounds: player::PlayerSoundController,
      pub head_bobber: player::PlayerHeadBobber,
      pub flashlight: f32,
+     pub almond_waters: i32,
 
      pub audio: kira::AudioManager,
 
@@ -69,6 +72,8 @@ impl application::Application for Liminal
                .chunk_width(32)
                .build();
           world.spawn_workers(2);
+          world.update_chunks(glam::Vec3::ZERO, 0.0);
+          thread::sleep(time::Duration::from_millis(5));
 
           let mut camera = camera::Camera::builder()
                .ar(context.config.width as f32 / context.config.height as f32)
@@ -93,11 +98,11 @@ impl application::Application for Liminal
           let head_bobber = player::PlayerHeadBobber::new();
           let mut audio = kira::AudioManager::new(kira::AudioManagerSettings::default())?;
           sounds.ambience(&mut audio);
+
           let flashlight = 0.0;
-
           let smilers = Vec::new();
-
           let frame = engine::FrameData::new();
+          let almond_waters = 0;
 
           render.register_bind_group_layout(
                context,
@@ -169,6 +174,7 @@ impl application::Application for Liminal
                sounds,
                head_bobber,
                flashlight,
+               almond_waters,
 
                audio,
 
@@ -184,6 +190,12 @@ impl application::Application for Liminal
           self.frame.update();
 
           self.world.update_chunks(self.camera.inner.position, self.frame.dt);
+
+          if self.almond_waters > 99
+          {
+               log::error!("Nice job! You escaped by finding the 100 almond waters");
+               input.request_quit = !input.request_quit;
+          }
 
           if input.consume_key_press("escape")
           {
@@ -223,6 +235,7 @@ impl application::Application for Liminal
                {
                     self.flashlight = 0.0;
                }
+               self.sounds.named_sound(&mut self.audio, "beep");
           }
           if input.consume_mouse_left_press()
           {
@@ -237,9 +250,14 @@ impl application::Application for Liminal
                if let Some(hit) = self.world.cast(ray)
                     && hit.block == block::Block::AlmondWater
                {
-                    self.sounds.interaction(&mut self.audio);
+                    self.sounds.named_sound(&mut self.audio, "beep");
                     self.world.modify(hit.position, block::Block::empty());
+                    self.almond_waters += 1;
                }
+          }
+          if input.consume_mouse_right_press()
+          {
+               self.sounds.named_sound(&mut self.audio, "follow");
           }
 
           match self.player.collisions

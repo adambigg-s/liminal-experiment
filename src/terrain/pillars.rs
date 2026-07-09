@@ -6,9 +6,10 @@ use crate::world;
 use crate::world::block;
 use crate::world::delta;
 
+#[derive(Debug)]
 pub struct Pillars;
 
-impl terrain::BiomeTrait for Pillars
+impl terrain::BiomeGeneration for Pillars
 {
      fn generate(
           &self,

@@ -6,9 +6,10 @@ use crate::world;
 use crate::world::block;
 use crate::world::delta;
 
+#[derive(Debug)]
 pub struct SuperLiminal;
 
-impl terrain::BiomeTrait for SuperLiminal
+impl terrain::BiomeGeneration for SuperLiminal
 {
      fn generate(
           &self,

@@ -2,6 +2,7 @@ use std::f32;
 use std::fs;
 
 use kira::sound::static_sound;
+use rustc_hash as rh;
 
 use crate::engine::aabb;
 use crate::engine::camera;
@@ -52,9 +53,9 @@ impl PlayerHeadBobber
      pub fn new() -> Self
      {
           Self {
-               major_freq: f32::consts::PI * 2.2,
-               minor_freq: f32::consts::TAU * 3.3,
-               major_amp: 0.075,
+               major_freq: f32::consts::PI * 3.0,
+               minor_freq: f32::consts::TAU * 4.0,
+               major_amp: 0.05,
                minor_amp: 0.0125,
                velocity_coeff: 1.0 / 3.0,
           }
@@ -72,17 +73,18 @@ impl PlayerHeadBobber
           let up = camera.inner.up();
           let right = camera.inner.right();
           let velocity = kinematics.velocity.with_y(0.0).length();
+          let wobble_factor = self.velocity_coeff * velocity;
 
-          right * (cmaj * self.major_amp + cmin * self.minor_amp) * self.velocity_coeff * velocity
-               + up * (smaj * self.major_amp + smin * self.minor_amp) * self.velocity_coeff * velocity
+          right * (cmaj * self.major_amp + cmin * self.minor_amp) * wobble_factor
+               + up * (smaj * self.major_amp + smin * self.minor_amp) * wobble_factor
      }
 }
 
 #[derive(bon::Builder, Debug)]
 pub struct PlayerSoundController
 {
+     pub named_sounds: rh::FxHashMap<String, static_sound::StaticSoundData>,
      pub walking_sound: Vec<static_sound::StaticSoundData>,
-     pub interaction_sound: Option<static_sound::StaticSoundData>,
      pub ambience: Option<static_sound::StaticSoundData>,
 
      last_sound: usize,
@@ -95,9 +97,9 @@ impl PlayerSoundController
 {
      pub fn new(path: &'static str) -> anyhow::Result<Self>
      {
-          let mut interaction_sound = None;
           let mut ambience = None;
           let mut walking_sound = Vec::new();
+          let mut named_sounds = rh::FxHashMap::default();
 
           let entries = fs::read_dir(path)?;
           for entry in entries
@@ -133,13 +135,13 @@ impl PlayerSoundController
                }
                else
                {
-                    interaction_sound = Some(static_sound::StaticSoundData::from_file(path)?);
+                    named_sounds.insert(stem.to_string(), static_sound::StaticSoundData::from_file(path)?);
                }
           }
 
           Ok(Self {
+               named_sounds,
                walking_sound,
-               interaction_sound,
                ambience,
 
                last_sound: 0,
@@ -157,9 +159,9 @@ impl PlayerSoundController
           }
      }
 
-     pub fn interaction(&self, audio: &mut kira::AudioManager)
+     pub fn named_sound(&self, audio: &mut kira::AudioManager, name: &str)
      {
-          if let Some(sound) = &self.interaction_sound
+          if let Some(sound) = self.named_sounds.get(name)
           {
                audio.play(sound.clone()).unwrap();
           }
@@ -176,10 +178,12 @@ impl PlayerSoundController
           if diff > self.sound_delay / (self.velocity_coeff * kinematics.velocity.length())
                && !kinematics.flying
           {
-               audio.play(self.walking_sound[self.last_sound % self.walking_sound.len()].clone().volume(
-                    rand::random_range(-20.0 .. -15.0)
-                         + (self.velocity_coeff * kinematics.velocity.length()).powf(2.0),
-               ))
+               let attenuation = (self.velocity_coeff * kinematics.velocity.length()).powf(2.0);
+               audio.play(
+                    self.walking_sound[self.last_sound % self.walking_sound.len()]
+                         .clone()
+                         .volume((rand::random_range(-20.0 .. -15.0) + attenuation).min(0.0)),
+               )
                .unwrap();
                self.last_sound += 1;
                self.last_sound_time = time;

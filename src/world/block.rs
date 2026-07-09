@@ -34,8 +34,10 @@ pub enum Block
      AlmondWater,
      Distressed1,
      Distressed2,
+     Distressed3,
      Corrupt1,
      Corrupt2,
+     Corrupt3,
      BlockCounter,
 }
 
@@ -48,11 +50,13 @@ impl Block
           Block::Plain,
           Block::Distressed1,
           Block::Distressed2,
+          Block::Distressed3,
           Block::Corrupt1,
           Block::Corrupt2,
+          Block::Corrupt3,
      ];
-     const SPECIAL: [Block; 2] = [Block::Distressed1, Block::Distressed2];
-     const CORRUPT: [Block; 2] = [Block::Corrupt1, Block::Corrupt2];
+     const SPECIAL: [Block; 3] = [Block::Distressed1, Block::Distressed2, Block::Distressed3];
+     const CORRUPT: [Block; 3] = [Block::Corrupt1, Block::Corrupt2, Block::Corrupt3];
      const EMPTY: Block = Block::Air;
 
      pub fn empty() -> Self
@@ -74,9 +78,11 @@ impl Block
                | Block::Light => "light",
                | Block::Distressed1 => "distressed1",
                | Block::Distressed2 => "distressed2",
+               | Block::Distressed3 => "distressed3",
                | Block::AlmondWater => "almondwater",
                | Block::Corrupt1 => "corrupt1",
                | Block::Corrupt2 => "corrupt2",
+               | Block::Corrupt3 => "corrupt3",
                | Block::BlockCounter => "",
           }
      }

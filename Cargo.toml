@@ -29,6 +29,10 @@ opt-level = 1
 incremental = true
 codegen-units = 256
 
+[profile.release]
+lto = "fat"
+opt-level = 3
+
 [[bin]]
 name = "backrooms_liminal"
 path = "./src/main.rs"

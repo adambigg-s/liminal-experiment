@@ -38,17 +38,18 @@ const BAYER_DITHER: mat4x4<f32> = mat4x4<f32>(
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let color = textureSample(texture_post, sample_post, in.tex);
 
-    let offset_uv = in.pos.yx + vec2<f32>(time) * 10.0;
+    let offset_uv = in.pos.yx + vec2<f32>(time) * 25.0;
     let coord = vec2<u32>(offset_uv);
-    let x = (coord.x) / 2 % 4;
-    let y = (coord.y) / 2 % 4;
+    let x = (coord.x / 2) % 4;
+    let y = (coord.y / 2) % 4;
     let dither = BAYER_DITHER[x][y];
 
-    let spread = 0.025 + cos(time * 2.0) * 0.00125;
+    let spread = 0.25 + cos(time / 8.0) * 0.1;
     let dither_noise = spread * (dither - 0.5);
-    let adjusted_color = color.rgb + vec3<f32>(dither_noise);
+    let intensity = dot(color.rgb, vec3<f32>(1.0));
+    let adjusted_color = clamp(color.rgb + vec3<f32>(dither_noise) * intensity, vec3<f32>(0.0), vec3<f32>(1.0));
 
-    let color_depth = 128.0;
+    let color_depth = 96.0;
     let quantized_color = floor(adjusted_color * color_depth) / color_depth;
 
     let final_color = vec4<f32>(quantized_color, 1.0);

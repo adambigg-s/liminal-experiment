@@ -14,8 +14,8 @@ const VICINITY_STRENGTH: f32 = 0.05;
 const BACKROOMS_LIGHT: vec4<f32> = vec4<f32>(1.0, 0.90, 0.60, 1.0);
 
 const FL_END: f32 = 25.0;
-const FL_INNER: f32 = 0.25;
-const FL_OUTER: f32 = 0.75;
+const FL_INNER: f32 = 0.05;
+const FL_OUTER: f32 = 1.0;
 const FL_STRENGTH: f32 = 0.5;
 
 struct VertexIn {
@@ -81,21 +81,20 @@ fn fs_main(in: VertexOut) -> FragmentOutput {
 
     let center = vec2<f32>(in.ndc.x * screen_ar, in.ndc.y);
     let dist = length(center);
-    let spot_factor = pow(smoothstep(FL_OUTER, FL_INNER, dist), 2.0);
+    let spot_factor = pow(smoothstep(FL_OUTER, FL_INNER, dist), 3.0);
     let fl_attenuation = pow(clamp(1.0 - pow((depth / FL_END), 2.0), 0.0, 1.0), 4.0);
     let fl_light = spot_factor * fl_attenuation * FL_STRENGTH * flashlight;
 
     let ao = pow(in.ao, 1.0);
-    var lum = pow(clamp(in.fil, AMBIENT, 1.0), 2.0);
+    var lum = pow(clamp(in.fil, AMBIENT, 1.0), 2.0) * 1.5;
     let vicinity_light = pow(vicinity_factor, 3.0) * VICINITY_STRENGTH;
 
-    var total_light = (lum + vicinity_light + fl_light) * BACKROOMS_LIGHT;
-    if in.fil > 1.0 - BACKROOMS_EPS {
-        total_light = vec4<f32>(1.0);
-    }
+    let tint_mix = smoothstep(0.8, 1.0, in.fil);
+    let light_color = mix(BACKROOMS_LIGHT, vec4<f32>(1.0), tint_mix);
+
+    var total_light = (lum + vicinity_light + fl_light) * light_color;
 
     let shaded_color = diffuse_color * ao * total_light;
-
     let final_color = mix(shaded_color, vec4<f32>(FADE_COLOR, 1.0), fog_factor);
 
     out.depth = in.pos.z;

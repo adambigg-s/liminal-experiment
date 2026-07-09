@@ -6,9 +6,10 @@ use crate::world;
 use crate::world::block;
 use crate::world::delta;
 
+#[derive(Debug)]
 pub struct Maze;
 
-impl terrain::BiomeTrait for Maze
+impl terrain::BiomeGeneration for Maze
 {
      fn generate(
           &self,
@@ -41,49 +42,49 @@ impl terrain::BiomeTrait for Maze
                          *chunk.get_mut(coord) = block::Block::AlmondWater;
                     }
 
-                    if config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.8
-                    {
-                         let bias = if rand::random_bool(0.5)
-                         {
-                              if rand::random_bool(0.5)
-                              {
-                                   glam::ivec3(1, 0, 0)
-                              }
-                              else
-                              {
-                                   glam::ivec3(-1, 0, 0)
-                              }
-                         }
-                         else
-                         {
-                              if rand::random_bool(0.5)
-                              {
-                                   glam::ivec3(0, 0, 1)
-                              }
-                              else
-                              {
-                                   glam::ivec3(0, 0, -1)
-                              }
-                         };
+                    // if config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.8
+                    // {
+                    //      let bias = if rand::random_bool(0.5)
+                    //      {
+                    //           if rand::random_bool(0.5)
+                    //           {
+                    //                glam::ivec3(1, 0, 0)
+                    //           }
+                    //           else
+                    //           {
+                    //                glam::ivec3(-1, 0, 0)
+                    //           }
+                    //      }
+                    //      else
+                    //      {
+                    //           if rand::random_bool(0.5)
+                    //           {
+                    //                glam::ivec3(0, 0, 1)
+                    //           }
+                    //           else
+                    //           {
+                    //                glam::ivec3(0, 0, -1)
+                    //           }
+                    //      };
 
-                         let mut coord = glam::ivec3(x, 0, z);
-                         for _ in 0 .. 10
-                         {
-                              let offset =
-                                   glam::ivec3(rand::random_range(-1 ..= 1), 0, rand::random_range(-1 ..= 1));
-                              coord += offset + bias;
-                              if !chunk.check_index(coord)
-                              {
-                                   break;
-                              }
+                    //      let mut coord = glam::ivec3(x, 0, z);
+                    //      for _ in 0 .. 10
+                    //      {
+                    //           let offset =
+                    //                glam::ivec3(rand::random_range(-1 ..= 1), 0, rand::random_range(-1 ..= 1));
+                    //           coord += offset + bias;
+                    //           if !chunk.check_index(coord)
+                    //           {
+                    //                break;
+                    //           }
 
-                              for y in 0 .. size.y - 2
-                              {
-                                   let coord = coord.with_y(y);
-                                   *chunk.get_mut(coord) = block::Block::wall_block(0.01);
-                              }
-                         }
-                    }
+                    //           for y in 0 .. size.y - 2
+                    //           {
+                    //                let coord = coord.with_y(y);
+                    //                *chunk.get_mut(coord) = block::Block::wall_block(0.01);
+                    //           }
+                    //      }
+                    // }
                }
           }
 

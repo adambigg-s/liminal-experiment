@@ -6,6 +6,8 @@ pub mod pillars;
 pub mod pitfalls;
 pub mod superliminal;
 
+use std::fmt::Debug;
+
 use crate::world::chunk;
 use crate::world::delta;
 
@@ -27,7 +29,9 @@ impl NoiseLayer
      }
 }
 
-pub trait BiomeTrait
+pub trait BiomeGeneration
+where
+     Self: Debug + Send + Sync,
 {
      fn generate(
           &self,
@@ -36,6 +40,14 @@ pub trait BiomeTrait
           config: &TerrainConfig,
           deltas: &mut delta::BlockDeltas,
      );
+}
+
+#[derive(bon::Builder, Debug)]
+pub struct BiomePoint
+{
+     biome_center: f64,
+     weird_center: f64,
+     generator: Box<dyn BiomeGeneration>,
 }
 
 #[derive(bon::Builder, Debug)]
@@ -52,6 +64,7 @@ pub struct TerrainGenerator
      pub noise: noise::Perlin,
      pub config: TerrainConfig,
      pub seed: u32,
+     pub biome_map: Vec<BiomePoint>,
 }
 
 impl TerrainGenerator
@@ -63,7 +76,7 @@ impl TerrainGenerator
                .biome_noise(
                     NoiseLayer::builder()
                          .offset(glam::DVec3::splat(0.0))
-                         .freq(glam::dvec3(0.5, 0.015, 0.5))
+                         .freq(glam::dvec3(0.5, 0.05, 0.5))
                          .build(),
                )
                .weird_noise(
@@ -80,25 +93,67 @@ impl TerrainGenerator
                )
                .build();
 
+          let biome_map = vec![
+               BiomePoint::builder()
+                    .biome_center(0.9)
+                    .weird_center(0.5)
+                    .generator(Box::new(parkour::Parkour))
+                    .build(),
+               // BiomePoint::builder()
+               //      .biome_center(0.5)
+               //      .weird_center(0.5)
+               //      .generator(Box::new(debugging_biome::DebuggingBiome))
+               //      .build(),
+               BiomePoint::builder()
+                    .biome_center(0.5)
+                    .weird_center(0.5)
+                    .generator(Box::new(maze::Maze))
+                    .build(),
+               BiomePoint::builder()
+                    .biome_center(0.5)
+                    .weird_center(0.1)
+                    .generator(Box::new(pillars::Pillars))
+                    .build(),
+               BiomePoint::builder()
+                    .biome_center(0.6)
+                    .weird_center(0.9)
+                    .generator(Box::new(pitfalls::Pitfalls))
+                    .build(),
+               BiomePoint::builder()
+                    .biome_center(0.1)
+                    .weird_center(0.9)
+                    .generator(Box::new(superliminal::SuperLiminal))
+                    .build(),
+          ];
+
           Self {
                noise,
                config,
                seed,
+               biome_map,
           }
      }
 
-     pub fn classify(&self, biome: f64, weird: f64) -> Box<dyn BiomeTrait>
+     pub fn classify(&self, biome: f64, weird: f64) -> &dyn BiomeGeneration
      {
-          match (biome, weird)
+          let sample_point = glam::dvec2(biome, weird);
+
+          let mut closest = &self.biome_map[0].generator;
+          let mut min_distance = f64::MAX;
+
+          for point in &self.biome_map
           {
-               | (b, w) if b < 0.3 && w > 0.8 => Box::new(superliminal::SuperLiminal),
-               | (b, w) if b > 0.4 && w < 0.3 => Box::new(pillars::Pillars),
-               | (b, _) if b > 0.7 => Box::new(parkour::Parkour),
-               | (_, w) if w > 0.55 => Box::new(pitfalls::Pitfalls),
-               | (b, _) if b < 0.15 => Box::new(empty::Empty),
-               // | _ => Box::new(maze::Maze),
-               | _ => Box::new(debugging_biome::DebuggingBiome),
+               let ideal = glam::dvec2(point.biome_center, point.weird_center);
+               let distance = sample_point.distance_squared(ideal);
+
+               if distance < min_distance
+               {
+                    closest = &point.generator;
+                    min_distance = distance;
+               }
           }
+
+          closest.as_ref()
      }
 
      pub fn form_chunk(&self, chunk: &mut chunk::Chunk) -> delta::BlockDeltas

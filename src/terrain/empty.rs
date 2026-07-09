@@ -6,9 +6,10 @@ use crate::world;
 use crate::world::block;
 use crate::world::delta;
 
+#[derive(Debug)]
 pub struct Empty;
 
-impl terrain::BiomeTrait for Empty
+impl terrain::BiomeGeneration for Empty
 {
      fn generate(
           &self,

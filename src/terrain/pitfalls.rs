@@ -6,9 +6,10 @@ use crate::world;
 use crate::world::block;
 use crate::world::delta;
 
+#[derive(Debug)]
 pub struct Pitfalls;
 
-impl terrain::BiomeTrait for Pitfalls
+impl terrain::BiomeGeneration for Pitfalls
 {
      fn generate(
           &self,
