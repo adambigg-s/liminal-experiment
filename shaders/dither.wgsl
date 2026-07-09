@@ -44,12 +44,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let y = (coord.y / 2) % 4;
     let dither = BAYER_DITHER[x][y];
 
-    let spread = 0.25 + cos(time / 8.0) * 0.1;
+    let spread = 0.25 + cos(time) * 0.125;
     let dither_noise = spread * (dither - 0.5);
     let intensity = dot(color.rgb, vec3<f32>(1.0));
     let adjusted_color = clamp(color.rgb + vec3<f32>(dither_noise) * intensity, vec3<f32>(0.0), vec3<f32>(1.0));
 
-    let color_depth = 96.0;
+    let color_depth = 64.0;
     let quantized_color = floor(adjusted_color * color_depth) / color_depth;
 
     let final_color = vec4<f32>(quantized_color, 1.0);

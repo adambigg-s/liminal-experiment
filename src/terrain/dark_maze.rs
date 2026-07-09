@@ -7,9 +7,9 @@ use crate::world::block;
 use crate::world::delta;
 
 #[derive(Debug)]
-pub struct Maze;
+pub struct DarkMaze;
 
-impl terrain::BiomeGeneration for Maze
+impl terrain::BiomeGeneration for DarkMaze
 {
      fn generate(
           &self,
@@ -33,13 +33,13 @@ impl terrain::BiomeGeneration for Maze
                     let world_coord = chunk.world_position() + coord;
                     if x % 8 == 0
                          && z % 8 == 0
-                         && config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.25
+                         && config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.8
                     {
                          *chunk.get_mut(coord) = block::Block::Light
                     }
 
                     let coord = glam::ivec3(x, 0, z);
-                    if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.875
+                    if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.85
                     {
                          *chunk.get_mut(coord) = block::Block::AlmondWater;
                     }

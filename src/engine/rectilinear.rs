@@ -56,8 +56,8 @@ impl Face
           {
                | Face::Top => glam::Vec3::Y,
                | Face::Bottom => glam::Vec3::NEG_Y,
-               | Face::Left => glam::Vec3::X,
-               | Face::Right => glam::Vec3::NEG_X,
+               | Face::Right => glam::Vec3::X,
+               | Face::Left => glam::Vec3::NEG_X,
                | Face::Back => glam::Vec3::Z,
                | Face::Front => glam::Vec3::NEG_Z,
                // | Face::DiagPosFront => glam::ivec3(1, 0, -1).as_vec3().normalize(),

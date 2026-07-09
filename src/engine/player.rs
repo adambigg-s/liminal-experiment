@@ -1,7 +1,9 @@
 use std::f32;
 use std::fs;
 
+use kira::listener;
 use kira::sound::static_sound;
+use kira::track;
 use rustc_hash as rh;
 
 use crate::engine::aabb;
@@ -86,6 +88,9 @@ pub struct PlayerSoundController
      pub named_sounds: rh::FxHashMap<String, static_sound::StaticSoundData>,
      pub walking_sound: Vec<static_sound::StaticSoundData>,
      pub ambience: Option<static_sound::StaticSoundData>,
+     pub listener: Option<listener::ListenerHandle>,
+
+     pub tracks: Vec<track::SpatialTrackHandle>,
 
      last_sound: usize,
      last_sound_time: f32,
@@ -139,10 +144,15 @@ impl PlayerSoundController
                }
           }
 
+          let listener = None;
+          let tracks = Vec::new();
+
           Ok(Self {
                named_sounds,
                walking_sound,
                ambience,
+               listener,
+               tracks,
 
                last_sound: 0,
                last_sound_time: 0.0,
@@ -156,7 +166,10 @@ impl PlayerSoundController
           if let Some(sound) = &self.ambience
           {
                audio.play(sound.clone()).unwrap();
+               return;
           }
+
+          log::error!("Error playing ambience track");
      }
 
      pub fn named_sound(&self, audio: &mut kira::AudioManager, name: &str)
@@ -164,7 +177,31 @@ impl PlayerSoundController
           if let Some(sound) = self.named_sounds.get(name)
           {
                audio.play(sound.clone()).unwrap();
+               return;
           }
+
+          log::error!("Error playing named audio");
+     }
+
+     pub fn named_sound_directional(
+          &mut self,
+          audio: &mut kira::AudioManager,
+          name: &str,
+          location: glam::Vec3,
+     )
+     {
+          self.tracks.retain_mut(|track| track.state() != track::TrackPlaybackState::Paused);
+          if let (Some(sound), Some(listener)) = (self.named_sounds.get(name), self.listener.as_ref())
+          {
+               let mut track = audio
+                    .add_spatial_sub_track(listener, location, kira::track::SpatialTrackBuilder::default())
+                    .unwrap();
+               track.play(sound.clone()).unwrap();
+               self.tracks.push(track);
+               return;
+          }
+
+          log::error!("Error playing directional audio");
      }
 
      pub fn movement(
@@ -182,7 +219,7 @@ impl PlayerSoundController
                audio.play(
                     self.walking_sound[self.last_sound % self.walking_sound.len()]
                          .clone()
-                         .volume((rand::random_range(-20.0 .. -15.0) + attenuation).min(0.0)),
+                         .volume((rand::random_range(-15.0 .. -10.0) + attenuation).min(0.0)),
                )
                .unwrap();
                self.last_sound += 1;

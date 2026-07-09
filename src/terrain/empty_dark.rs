@@ -7,9 +7,9 @@ use crate::world::block;
 use crate::world::delta;
 
 #[derive(Debug)]
-pub struct Maze;
+pub struct EmptyDark;
 
-impl terrain::BiomeGeneration for Maze
+impl terrain::BiomeGeneration for EmptyDark
 {
      fn generate(
           &self,
@@ -33,7 +33,7 @@ impl terrain::BiomeGeneration for Maze
                     let world_coord = chunk.world_position() + coord;
                     if x % 8 == 0
                          && z % 8 == 0
-                         && config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.25
+                         && config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.7
                     {
                          *chunk.get_mut(coord) = block::Block::Light
                     }
@@ -42,26 +42,6 @@ impl terrain::BiomeGeneration for Maze
                     if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.875
                     {
                          *chunk.get_mut(coord) = block::Block::AlmondWater;
-                    }
-
-                    let world_coord = chunk.world_position() + coord;
-                    if rand::random_bool(0.005)
-                    {
-                         let length = rand::random_range(8 .. 16);
-                         let sign = if rand::random_bool(0.5) { -1 } else { 1 };
-                         let dir = if rand::random_bool(0.5) { glam::IVec3::Z } else { glam::IVec3::X };
-                         let direction = dir * sign;
-                         for delta_length in 0 .. length
-                         {
-                              for y in 0 .. size.y
-                              {
-                                   let coord = (coord + direction * delta_length).with_y(y);
-                                   if chunk.check_index(coord)
-                                   {
-                                        *chunk.get_mut(coord) = block::Block::wall_block(0.01);
-                                   }
-                              }
-                         }
                     }
                }
           }

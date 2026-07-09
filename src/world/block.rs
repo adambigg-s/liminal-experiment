@@ -113,6 +113,9 @@ impl Block
           match self
           {
                | Block::Light => Some(light::Light::max_light()),
+               | Block::Corrupt1 => Some(light::Light::new(2)),
+               | Block::Corrupt2 => Some(light::Light::new(3)),
+               | Block::Corrupt3 => Some(light::Light::new(4)),
                | _ => None,
           }
      }

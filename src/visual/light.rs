@@ -7,7 +7,7 @@ use crate::world;
 use crate::world::chunk;
 use crate::world::delta;
 
-const MAX_LIGHT: LightInner = 15;
+const MAX_LIGHT: LightInner = 18;
 
 type LightInner = u8;
 

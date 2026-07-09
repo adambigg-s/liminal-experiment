@@ -264,26 +264,33 @@ where
                          {
                               state.window.set_cursor_grab(window::CursorGrabMode::None).unwrap();
                               state.window.set_cursor_visible(true);
+                              state.input.request_fullscreen = false;
                          }
                          | input::MouseMode::Grab =>
                          {
                               state.window.set_cursor_grab(window::CursorGrabMode::Confined).unwrap();
                               state.window.set_cursor_visible(false);
+                              state.input.request_fullscreen = true;
                          }
                          | input::MouseMode::Free =>
                          {
                               state.window.set_cursor_grab(window::CursorGrabMode::None).unwrap();
                               state.window.set_cursor_visible(true);
                               state.input.consume_mouse_delta();
+                              state.input.request_fullscreen = false;
                          }
                     }
 
                     match state.input.request_fullscreen
                     {
                          | true =>
-                         {}
+                         {
+                              state.window.set_fullscreen(Some(window::Fullscreen::Borderless(None)));
+                         }
                          | false =>
-                         {}
+                         {
+                              state.window.set_fullscreen(None);
+                         }
                     }
 
                     if let Err(err) = state.update()

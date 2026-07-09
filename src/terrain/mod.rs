@@ -1,5 +1,7 @@
+pub mod dark_maze;
 pub mod debugging_biome;
 pub mod empty;
+pub mod empty_dark;
 pub mod maze;
 pub mod parkour;
 pub mod pillars;
@@ -56,6 +58,7 @@ pub struct TerrainConfig
      pub biome_noise: NoiseLayer,
      pub weird_noise: NoiseLayer,
      pub feature_noise: NoiseLayer,
+     pub random_noise: NoiseLayer,
 }
 
 #[derive(bon::Builder, Debug)]
@@ -75,39 +78,53 @@ impl TerrainGenerator
           let config = TerrainConfig::builder()
                .biome_noise(
                     NoiseLayer::builder()
-                         .offset(glam::DVec3::splat(0.0))
-                         .freq(glam::dvec3(0.5, 0.05, 0.5))
+                         .offset(glam::DVec3::splat(0.9207135))
+                         .freq(glam::dvec3(0.25, 0.025, 0.25))
                          .build(),
                )
                .weird_noise(
                     NoiseLayer::builder()
-                         .offset(glam::DVec3::splat(250.0))
+                         .offset(glam::DVec3::splat(-90.18973095))
                          .freq(glam::dvec3(0.5, 0.1, 0.5))
                          .build(),
                )
                .feature_noise(
                     NoiseLayer::builder()
-                         .offset(glam::DVec3::splat(-8000.0))
+                         .offset(glam::DVec3::splat(-8000.09238427))
                          .freq(glam::dvec3(0.3, 0.3, 0.3))
+                         .build(),
+               )
+               .random_noise(
+                    NoiseLayer::builder()
+                         .offset(glam::DVec3::splat(-20202.234234234))
+                         .freq(glam::dvec3(999.999, 999.999, 999.999))
                          .build(),
                )
                .build();
 
           let biome_map = vec![
                BiomePoint::builder()
-                    .biome_center(0.9)
-                    .weird_center(0.5)
+                    .biome_center(0.8)
+                    .weird_center(0.4)
                     .generator(Box::new(parkour::Parkour))
                     .build(),
-               // BiomePoint::builder()
-               //      .biome_center(0.5)
-               //      .weird_center(0.5)
-               //      .generator(Box::new(debugging_biome::DebuggingBiome))
-               //      .build(),
                BiomePoint::builder()
                     .biome_center(0.5)
                     .weird_center(0.5)
-                    .generator(Box::new(maze::Maze))
+                    // .generator(Box::new(maze::Maze))
+                    .generator(Box::new(debugging_biome::DebuggingBiome))
+                    .build(),
+               BiomePoint::builder()
+                    .biome_center(0.55)
+                    .weird_center(0.55)
+                    // .generator(Box::new(dark_maze::DarkMaze))
+                    .generator(Box::new(debugging_biome::DebuggingBiome))
+                    .build(),
+               BiomePoint::builder()
+                    .biome_center(0.65)
+                    .weird_center(0.65)
+                    // .generator(Box::new(empty_dark::EmptyDark))
+                    .generator(Box::new(debugging_biome::DebuggingBiome))
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.5)
@@ -164,8 +181,16 @@ impl TerrainGenerator
           let biome = self.config.biome_noise.sample(self.noise, coord);
           let weird = self.config.weird_noise.sample(self.noise, coord);
 
-          let biome = self.classify(biome, weird);
-          biome.generate(chunk, &self.noise, &self.config, &mut outgoing_deltas);
+          if (-1 ..= 1).contains(&chunk.offset().x) && (-1 ..= 1).contains(&chunk.offset().y)
+          {
+               empty_dark::EmptyDark.generate(chunk, &self.noise, &self.config, &mut outgoing_deltas);
+               // debugging_biome::DebuggingBiome.generate(chunk, &self.noise, &self.config, &mut outgoing_deltas);
+          }
+          else
+          {
+               let biome = self.classify(biome, weird);
+               biome.generate(chunk, &self.noise, &self.config, &mut outgoing_deltas);
+          }
 
           outgoing_deltas
      }

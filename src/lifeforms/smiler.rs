@@ -5,7 +5,21 @@ use crate::engine::transform;
 use crate::lifeforms;
 use crate::render;
 
-#[derive(bon::Builder, Debug)]
+#[derive(bon::Builder, Debug, Default)]
+pub struct FollowCubeManager
+{
+     pub cubes: Vec<FollowCube>,
+}
+
+impl FollowCubeManager
+{
+     pub fn followcube_key(&self, index: usize) -> String
+     {
+          format!("fc{}_mesh", index)
+     }
+}
+
+#[derive(bon::Builder, Debug, Default)]
 pub struct FollowCube
 {
      pub transform: transform::Transform,

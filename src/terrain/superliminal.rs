@@ -36,21 +36,13 @@ impl terrain::BiomeGeneration for SuperLiminal
                               {
                                    block::Block::Light
                               }
-                              else if rand::random_bool(0.05)
-                              {
-                                   block::Block::AlmondWater
-                              }
                               else if rand::random_bool(0.5)
                               {
-                                   block::Block::Plain
-                              }
-                              else if rand::random_bool(0.5)
-                              {
-                                   block::Block::Distressed1
+                                   block::Block::wall_block(0.5)
                               }
                               else
                               {
-                                   block::Block::Corrupt1
+                                   block::Block::corrupt_block(0.5)
                               }
                          }
                     }

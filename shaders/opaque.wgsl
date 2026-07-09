@@ -1,6 +1,6 @@
 const BACKROOMS_EPS: f32 = 1e-3;
 
-const AMBIENT: f32 = 0.005;
+const AMBIENT: f32 = 0.01;
 
 const FADE_COLOR: vec3<f32> = vec3<f32>(0.005, 0.0, 0.0);
 
@@ -13,10 +13,10 @@ const VICINITY_STRENGTH: f32 = 0.05;
 
 const BACKROOMS_LIGHT: vec4<f32> = vec4<f32>(1.0, 0.90, 0.60, 1.0);
 
-const FL_END: f32 = 25.0;
-const FL_INNER: f32 = 0.05;
-const FL_OUTER: f32 = 1.0;
-const FL_STRENGTH: f32 = 0.5;
+const FL_END: f32 = 50.0;
+const FL_INNER: f32 = 0.1;
+const FL_OUTER: f32 = 1.5;
+const FL_STRENGTH: f32 = 1.0;
 
 struct VertexIn {
     @location(0) pos: vec3<f32>,
@@ -46,7 +46,7 @@ fn vs_main(in: VertexIn) -> VertexOut {
 
     out.pos = view_proj * vec4<f32>(in.pos, 1.0);
     out.world_pos = view * vec4<f32>(in.pos, 1.0);
-    out.nor = in.nor;
+    out.nor = (view * vec4<f32>(in.nor, 0.0)).xyz;
     out.tex = in.tex;
     out.fil = in.fil;
     out.ao = in.ao;
@@ -81,9 +81,12 @@ fn fs_main(in: VertexOut) -> FragmentOutput {
 
     let center = vec2<f32>(in.ndc.x * screen_ar, in.ndc.y);
     let dist = length(center);
+    let normal = normalize(in.nor);
     let spot_factor = pow(smoothstep(FL_OUTER, FL_INNER, dist), 3.0);
     let fl_attenuation = pow(clamp(1.0 - pow((depth / FL_END), 2.0), 0.0, 1.0), 4.0);
-    let fl_light = spot_factor * fl_attenuation * FL_STRENGTH * flashlight;
+    let fl_dir = normalize(-in.world_pos.xyz);
+    let fl_surface = max(dot(fl_dir, normal), 0.0);
+    let fl_light = spot_factor * fl_attenuation * fl_surface * FL_STRENGTH * flashlight;
 
     let ao = pow(in.ao, 1.0);
     var lum = pow(clamp(in.fil, AMBIENT, 1.0), 2.0) * 1.5;

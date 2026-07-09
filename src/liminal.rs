@@ -1,14 +1,13 @@
 use std::env;
 use std::range;
 use std::sync;
-use std::thread;
-use std::time;
 
 use crate::application;
 use crate::application::input;
 use crate::engine;
 use crate::engine::camera;
 use crate::engine::kinematics;
+use crate::engine::kinematics::Collision;
 use crate::engine::player;
 use crate::engine::ray;
 use crate::engine::ray::Cast;
@@ -70,10 +69,9 @@ impl application::Application for Liminal
                .view_distance(196)
                .chunk_height(8)
                .chunk_width(32)
+               .view_coefficient(glam::usizevec3(1, 4, 1))
                .build();
           world.spawn_workers(2);
-          world.update_chunks(glam::Vec3::ZERO, 0.0);
-          thread::sleep(time::Duration::from_millis(5));
 
           let mut camera = camera::Camera::builder()
                .ar(context.config.width as f32 / context.config.height as f32)
@@ -83,7 +81,7 @@ impl application::Application for Liminal
                .build();
           camera.inner.position += glam::vec3(0.0, 3.0, 0.0);
 
-          let mut player = player::PlayerController::builder()
+          let player = player::PlayerController::builder()
                .lookspeed(0.00125)
                .movespeed(12.0 * 2f32.powf(3.0))
                .kinematics(kinematics::Kinematics::builder().up(glam::Vec3::Y).build())
@@ -93,11 +91,11 @@ impl application::Application for Liminal
                ))
                .collisions(true)
                .build();
-          player.jiggle_free(&world);
-          let sounds = player::PlayerSoundController::new("./res/audio/")?;
+          let mut sounds = player::PlayerSoundController::new("./res/audio/")?;
           let head_bobber = player::PlayerHeadBobber::new();
           let mut audio = kira::AudioManager::new(kira::AudioManagerSettings::default())?;
           sounds.ambience(&mut audio);
+          sounds.listener = Some(audio.add_listener(glam::Vec3::ZERO, glam::Quat::IDENTITY)?);
 
           let flashlight = 0.0;
           let smilers = Vec::new();
@@ -149,9 +147,12 @@ impl application::Application for Liminal
                "screen_ar_uni",
                util::uniform::<f32>(context, "Screen aspect ratio uniform"),
           );
-          render.register_resource("flashlight_uni", util::uniform::<f32>(context, "Flashlight toggle uni"));
           render.register_resource("dither_sampler", util::sampler(context, "Dither sampler"));
           render.register_resource("time_uni", util::uniform::<f32>(context, "Global time uniform"));
+          render.register_resource(
+               "flashlight_uni",
+               util::uniform::<f32>(context, "Flashlight toggle uniform"),
+          );
 
           render.register_bind_group(
                context,
@@ -188,12 +189,11 @@ impl application::Application for Liminal
      fn physics_frame(&mut self, input: &mut input::Input, _: &render::GfxContext, _: &render::GfxRenderer)
      {
           self.frame.update();
-
           self.world.update_chunks(self.camera.inner.position, self.frame.dt);
 
-          if self.almond_waters > 99
+          if self.almond_waters > 50 || self.player.collider.center().y > 100.0
           {
-               log::error!("Nice job! You escaped by finding the 100 almond waters");
+               log::error!("Nice job! You escaped by finding the 50 almond waters or climbing 100 meters");
                input.request_quit = !input.request_quit;
           }
 
@@ -235,7 +235,7 @@ impl application::Application for Liminal
                {
                     self.flashlight = 0.0;
                }
-               self.sounds.named_sound(&mut self.audio, "beep");
+               self.sounds.named_sound(&mut self.audio, "flashlight");
           }
           if input.consume_mouse_left_press()
           {
@@ -253,13 +253,32 @@ impl application::Application for Liminal
                     self.sounds.named_sound(&mut self.audio, "beep");
                     self.world.modify(hit.position, block::Block::empty());
                     self.almond_waters += 1;
+
+                    if rand::random_bool(0.025)
+                    {
+                         self.sounds.named_sound_directional(
+                              &mut self.audio,
+                              "follow",
+                              self.camera.inner.position - self.camera.inner.forward(),
+                         );
+                    }
                }
           }
-          if input.consume_mouse_right_press()
+
+          if let Some(listener) = &mut self.sounds.listener
           {
-               self.sounds.named_sound(&mut self.audio, "follow");
+               listener.set_position(self.camera.inner.position, kira::Tween::default());
+               listener.set_orientation(self.camera.inner.rotation, kira::Tween::default());
+          }
+          else
+          {
+               log::error!("No listener configured");
           }
 
+          if self.world.collides(self.player.collider)
+          {
+               self.player.jiggle_free(&self.world);
+          }
           match self.player.collisions
           {
                | true =>
@@ -355,6 +374,8 @@ impl application::Application for Liminal
           self.camera.inner.rotation = glam::Quat::from_rotation_z(0.0)
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
+
+          // log::info!("FPS: {:.2}", self.frame.dt.recip());
      }
 
      fn gfx_frame(

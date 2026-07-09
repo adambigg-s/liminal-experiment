@@ -123,9 +123,9 @@ impl DecoratorBillboard
           match self
           {
                | DecoratorBillboard::DiagPosFront => glam::ivec3(1, 0, -1).as_vec3().normalize(),
-               | DecoratorBillboard::DiagPosBack => glam::ivec3(1, 0, 1).as_vec3().normalize(),
+               | DecoratorBillboard::DiagPosBack => glam::ivec3(-1, 0, 1).as_vec3().normalize(),
                | DecoratorBillboard::DiagNegFront => glam::ivec3(-1, 0, -1).as_vec3().normalize(),
-               | DecoratorBillboard::DiagNegBack => glam::ivec3(-1, 0, 1).as_vec3().normalize(),
+               | DecoratorBillboard::DiagNegBack => glam::ivec3(1, 0, -1).as_vec3().normalize(),
           }
      }
 
@@ -317,7 +317,7 @@ impl<'c> ChunkMesher<'c>
 
      fn map_ao(&self, coord: glam::IVec3, face: rectilinear::Face) -> [f32; 4]
      {
-          if self.view.get_block(coord).emissivity().is_some()
+          if self.view.get_block(coord).emissivity() == Some(light::Light::max_light())
           {
                return [1.0; 4];
           }
@@ -358,7 +358,7 @@ impl<'c> ChunkMesher<'c>
 
      fn map_face_lighting(&self, coord: glam::IVec3, face: rectilinear::Face) -> [f32; 4]
      {
-          if self.view.get_block(coord).emissivity().is_some()
+          if self.view.get_block(coord).emissivity() == Some(light::Light::max_light())
           {
                return [1.0; 4];
           }

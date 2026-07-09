@@ -100,6 +100,7 @@ pub struct ChunkManager
      pub center_chunk: glam::IVec3,
 
      pub view_distance: usize,
+     pub view_coefficient: glam::USizeVec3,
 
      #[builder(default)]
      pub chunk_map: map::ChunkMap,
@@ -275,7 +276,7 @@ impl ChunkManager
           let rel = coord.saturating_sub(
                self.center_chunk
                     * glam::ivec3(self.chunk_width as i32, self.chunk_height as i32, self.chunk_width as i32),
-          );
+          ) * self.view_coefficient.as_ivec3();
           let rel_sq_length = (rel.x.saturating_mul(rel.x))
                .saturating_add(rel.y.saturating_mul(rel.y))
                .saturating_add(rel.z.saturating_mul(rel.z)) as usize;
