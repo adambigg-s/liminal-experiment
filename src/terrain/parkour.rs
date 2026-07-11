@@ -45,7 +45,8 @@ impl terrain::BiomeGeneration for Parkour
                     {
                          let coord = glam::ivec3(x, y, z);
 
-                         if config.feature_noise.sample(noise, coord.as_dvec3()) > 2.0 / 3.0
+                         let world_coord = chunk.world_position() + coord;
+                         if config.feature_noise.sample(noise, world_coord.as_dvec3()) > 2.0 / 3.0
                          {
                               if rand::random_bool(0.005)
                               {

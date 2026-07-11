@@ -19,6 +19,10 @@ struct VertexOut {
 fn vs_main(in: VertexIn) -> VertexOut {
     var out: VertexOut;
 
+    out.pos = view_proj * model * vec4<f32>(in.pos, 1.0);
+    out.nor = (view * vec4<f32>(in.nor, 1.0)).xyz;
+    out.tex = in.tex;
+
     return out;
 }
 
@@ -30,7 +34,8 @@ fn vs_main(in: VertexIn) -> VertexOut {
 
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
+    let color = textureSample(texture_atlas, sample_atlas, in.tex);
 
-    return vec4<f32>(1.0);
+    return color;
 }
 

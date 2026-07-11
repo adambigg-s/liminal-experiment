@@ -14,6 +14,8 @@ use crate::engine::kinematics::Collision;
 use crate::engine::player;
 use crate::engine::ray;
 use crate::engine::ray::Cast;
+use crate::engine::transform;
+use crate::lifeforms::LifeForm;
 use crate::lifeforms::smiler;
 use crate::render;
 use crate::render::GfxCamera;
@@ -40,7 +42,7 @@ pub struct Liminal
      pub world: manager::ChunkManager,
      pub frame: engine::FrameData,
 
-     pub smilers: Vec<smiler::FollowCube>,
+     pub smilers: smiler::FollowCubeManager,
 }
 
 impl application::Application for Liminal
@@ -102,9 +104,10 @@ impl application::Application for Liminal
           sounds.listener = Some(audio.add_listener(glam::Vec3::ZERO, glam::Quat::IDENTITY)?);
 
           let flashlight = 0.0;
-          let smilers = Vec::new();
           let frame = engine::FrameData::new();
           let almond_waters = 0;
+
+          let mut smilers = smiler::FollowCubeManager::new(&atlas, context, render);
 
           render.register_bind_group_layout(
                context,
@@ -191,6 +194,8 @@ impl application::Application for Liminal
                log::warn!("{}", line?);
           }
 
+          smilers.add_smiler(transform::Transform::identity(), context, render)?;
+
           Ok(Self {
                camera,
                player,
@@ -212,6 +217,7 @@ impl application::Application for Liminal
      {
           self.frame.update();
           self.world.update_chunks(self.camera.inner.position, self.frame.dt);
+          self.smilers.update(&self.player, self.frame.dt);
 
           if self.almond_waters > 100 || self.player.collider.center().y > 100.0
           {
@@ -407,6 +413,8 @@ impl application::Application for Liminal
      {
           self.camera.ar = context.config.width as f32 / context.config.height as f32;
           self.world.sync_gfx_chunks(context, render);
+          self.smilers.gfx_sync(context, render);
+
           if let Some(resource::GfxResource::Uniform(camera_uni)) =
                render.resources.get("camera_view_proj_uni")
           {
@@ -437,6 +445,15 @@ impl application::Application for Liminal
                     bind_groups: vec!["global_bg".into()],
                });
           });
+
+          for index in 0 .. self.smilers.cubes.len()
+          {
+               render.queue(render::GfxDrawCall {
+                    mesh: self.smilers.mesh_key().into(),
+                    pipe: "entity_pipe".into(),
+                    bind_groups: vec!["global_bg".into(), self.smilers.transform_key(index)],
+               });
+          }
      }
 
      fn gfx_postpass(

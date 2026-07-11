@@ -49,6 +49,8 @@ pub struct BiomePoint
 {
      biome_center: f64,
      weird_center: f64,
+     #[builder(default = 1.0)]
+     weight: f64,
      generator: Box<dyn BiomeGeneration>,
 }
 
@@ -117,12 +119,14 @@ impl TerrainGenerator
                BiomePoint::builder()
                     .biome_center(0.55)
                     .weird_center(0.55)
+                    .weight(0.5)
                     .generator(Box::new(dark_maze::DarkMaze))
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.65)
                     .weird_center(0.65)
+                    .weight(0.5)
                     .generator(Box::new(empty_dark::EmptyDark))
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .build(),
@@ -162,8 +166,9 @@ impl TerrainGenerator
           {
                let ideal = glam::dvec2(point.biome_center, point.weird_center);
                let distance = sample_point.distance_squared(ideal);
+               let biased = distance / point.weight;
 
-               if distance < min_distance
+               if biased < min_distance
                {
                     closest = &point.generator;
                     min_distance = distance;
