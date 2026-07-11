@@ -1,4 +1,7 @@
 use std::env;
+use std::fs;
+use std::io;
+use std::io::BufRead;
 use std::range;
 use std::sync;
 
@@ -124,11 +127,22 @@ impl application::Application for Liminal
                     resource::GfxBindingLayout::Sampler,
                ],
           )?;
+          render.register_bind_group_layout(
+               context,
+               "entity_layout",
+               &[resource::GfxBindingLayout::Uniform],
+          )?;
+
           render.register_pipeline::<pipelines::Opaque>(context, "terrain_pipe", &["global_layout"]);
           render.register_pipeline::<pipelines::Dither>(
                context,
                "dither_pipe",
                &["global_layout", "dither_layout"],
+          );
+          render.register_pipeline::<pipelines::Entity>(
+               context,
+               "entity_pipe",
+               &["global_layout", "entity_layout"],
           );
 
           render.register_resource(
@@ -169,6 +183,13 @@ impl application::Application for Liminal
                     "time_uni",
                ],
           )?;
+
+          let readme = fs::File::open("./README")?;
+          let reader = io::BufReader::new(readme);
+          for line in reader.lines().take(19)
+          {
+               log::warn!("{}", line?);
+          }
 
           Ok(Self {
                camera,
@@ -375,8 +396,6 @@ impl application::Application for Liminal
           self.camera.inner.rotation = glam::Quat::from_rotation_z(0.0)
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
-
-          // log::info!("FPS: {:.2}", self.frame.dt.recip());
      }
 
      fn gfx_frame(

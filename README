@@ -5,17 +5,32 @@ liminal-experiment
 KEYBINDINGS
 -----------
 
-Escape     - quit
+Esc        - quit
 Mouse      - rotational movement
 W, A, S, D - translational movement
-Click      - interact
+LClick     - interact
 T          - toggle flashlight
 Y          - toggle noclip
-Q          - cycle mouse grab mode
+Q          - cycle mouse grab mode & fullscreen game
 LShift     - sprint
 LCtrl      - crouch
 +          - increase look sense
 -          - lower look sense
+
+BUILDING
+--------
+
+$ cargo +nightly build --release
+
+The exe will be in ./target/release
+
+RUNNING
+-------
+
+Double click the ./backrooms_liminal.exe
+
+Or, run
+	$ ./backrooms_liminal.exe -- <seed>
 
 TEXTURE & RESOURCE
 ------------------
