@@ -147,6 +147,11 @@ impl application::Application for Liminal
                "entity_pipe",
                &["global_layout", "entity_layout"],
           );
+          render.register_pipeline::<pipelines::Vignette>(
+               context,
+               "vignette_pipe",
+               &["global_layout", "dither_layout"],
+          );
 
           render.register_resource(
                "camera_view_proj_uni",
@@ -187,9 +192,9 @@ impl application::Application for Liminal
                ],
           )?;
 
-          let readme = fs::File::open("./README")?;
+          let readme = fs::File::open("./res/README")?;
           let reader = io::BufReader::new(readme);
-          for line in reader.lines().take(19)
+          for line in reader.lines()
           {
                log::warn!("{}", line?);
           }
@@ -511,10 +516,22 @@ impl application::Application for Liminal
           surface_view: &wgpu::TextureView,
      )
      {
-          let Some(postpass_texture) = &gfx_render.postpass_texture
+          let Some(postpass_a) = &gfx_render.offscreen_texture_a
           else
           {
                log::error!("Attempt to complete graphics postpass without a configured postpass texture");
+               return;
+          };
+          let Some(postpass_b) = &gfx_render.offscreen_texture_b
+          else
+          {
+               log::error!("Attempt to complete graphics postpass without a configured postpass texture");
+               return;
+          };
+          let Some(global_bg) = gfx_render.bind_groups.get("global_bg")
+          else
+          {
+               log::error!("Attempt to grab nonexistant global bindgroup in postpass");
                return;
           };
           let Some(layout) = gfx_render.bind_group_layouts.get("dither_layout")
@@ -529,35 +546,74 @@ impl application::Application for Liminal
                log::error!("Attempt to grab nonexistant sampler in postpass");
                return;
           };
-          let Some(pipeline) = gfx_render.pipelines.get("dither_pipe")
+          let Some(dither_pipe) = gfx_render.pipelines.get("dither_pipe")
           else
           {
                log::error!("Attempt to grab nonexistant pipeline in postpass");
                return;
           };
-          let Some(global_bg) = gfx_render.bind_groups.get("global_bg")
+          let Some(vignette_pipe) = gfx_render.pipelines.get("vignette_pipe")
           else
           {
-               log::error!("Attempt to grab nonexistant global bindgroup in postpass");
+               log::error!("Attempt to grab nonexistant pipeline in postpass");
                return;
           };
 
-          let bind_group = gfx_context.device.create_bind_group(&wgpu::BindGroupDescriptor {
-               label: Some("Dither postpass bind group"),
-               layout,
-               entries: &[
-                    wgpu::BindGroupEntry {
-                         binding: 0,
-                         resource: wgpu::BindingResource::TextureView(&postpass_texture.view),
-                    },
-                    wgpu::BindGroupEntry {
-                         binding: 1,
-                         resource: wgpu::BindingResource::Sampler(sampler),
-                    },
-               ],
-          });
-
+          // Dither pass
           {
+               let bind_group = gfx_context.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: Some("Dither postpass bind group"),
+                    layout,
+                    entries: &[
+                         wgpu::BindGroupEntry {
+                              binding: 0,
+                              resource: wgpu::BindingResource::TextureView(&postpass_a.view),
+                         },
+                         wgpu::BindGroupEntry {
+                              binding: 1,
+                              resource: wgpu::BindingResource::Sampler(sampler),
+                         },
+                    ],
+               });
+               let mut render_pass = gfx_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Postpass render pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                         view: &postpass_b.view,
+                         depth_slice: None,
+                         resolve_target: None,
+                         ops: wgpu::Operations {
+                              load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                              store: wgpu::StoreOp::Store,
+                         },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                    multiview_mask: None,
+               });
+
+               render_pass.set_pipeline(dither_pipe);
+               render_pass.set_bind_group(0, global_bg, &[]);
+               render_pass.set_bind_group(1, &bind_group, &[]);
+               render_pass.draw(0 .. 3, 0 .. 1);
+          }
+
+          // Write pass
+          {
+               let bind_group = gfx_context.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: Some("Vignette postpass bind group"),
+                    layout,
+                    entries: &[
+                         wgpu::BindGroupEntry {
+                              binding: 0,
+                              resource: wgpu::BindingResource::TextureView(&postpass_b.view),
+                         },
+                         wgpu::BindGroupEntry {
+                              binding: 1,
+                              resource: wgpu::BindingResource::Sampler(sampler),
+                         },
+                    ],
+               });
                let mut render_pass = gfx_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("Postpass render pass"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -575,7 +631,7 @@ impl application::Application for Liminal
                     multiview_mask: None,
                });
 
-               render_pass.set_pipeline(pipeline);
+               render_pass.set_pipeline(vignette_pipe);
                render_pass.set_bind_group(0, global_bg, &[]);
                render_pass.set_bind_group(1, &bind_group, &[]);
                render_pass.draw(0 .. 3, 0 .. 1);

@@ -33,7 +33,7 @@ impl terrain::BiomeGeneration for Maze
                     let world_coord = chunk.world_position() + coord;
                     if x % 8 == 0
                          && z % 8 == 0
-                         && config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.15
+                         && config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.1
                     {
                          *chunk.get_mut(coord) = block::Block::Light
                     }

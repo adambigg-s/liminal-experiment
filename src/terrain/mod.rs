@@ -113,7 +113,7 @@ impl TerrainGenerator
                BiomePoint::builder()
                     .biome_center(0.5)
                     .weird_center(0.5)
-                    .weight(1.5)
+                    .weight(2.0)
                     .generator(Box::new(maze::Maze))
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .build(),

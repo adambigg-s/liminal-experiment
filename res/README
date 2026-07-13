@@ -1,0 +1,14 @@
+KEYBINDINGS
+-----------
+
+Q          - cycle mouse grab mode & fullscreen game
+Esc        - quit
+Mouse      - rotational movement
+W, A, S, D - translational movement
+LClick     - interact
+T          - toggle flashlight
+LShift     - sprint
+LCtrl      - crouch
++          - increase look sense
+-          - lower look sense
+Y          - toggle noclip

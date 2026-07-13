@@ -21,7 +21,7 @@ fn vs_main(in: VertexIn) -> VertexOut {
     var out: VertexOut;
 
     out.pos = view_proj * model * vec4<f32>(in.pos, 1.0);
-    out.world_pos = view * model * vec4<f32>(in.pos, 1.0);
+    out.world_pos = (view * model * vec4<f32>(in.pos, 1.0));
     out.nor = (view * vec4<f32>(in.nor, 1.0)).xyz;
     out.tex = in.tex;
 

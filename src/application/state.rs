@@ -92,7 +92,7 @@ where
                &mut encoder,
           );
 
-          let render_target = if let Some(postpass_texture) = &self.gfx_render.postpass_texture
+          let render_target = if let Some(postpass_texture) = &self.gfx_render.offscreen_texture_a
           {
                &postpass_texture.view
           }

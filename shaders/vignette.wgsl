@@ -1,5 +1,3 @@
-const PI: f32 = cos(-1.0);
-
 struct VertexOutput {
     @builtin(position) pos: vec4<f32>,
     @location(0) tex: vec2<f32>,
@@ -29,32 +27,26 @@ fn vs_main(@builtin(vertex_index) in: u32) -> VertexOutput {
 @group(1) @binding(0) var texture_post: texture_2d<f32>;
 @group(1) @binding(1) var sample_post: sampler;
 
-const BAYER_DITHER: mat4x4<f32> = mat4x4<f32>(
-    0.0 / 16.0, 8.0 / 16.0, 2.0 / 16.0, 10.0 / 16.0,
-    12.0 / 16.0, 4.0 / 16.0, 14.0 / 16.0, 6.0 / 16.0,
-    3.0 / 16.0, 11.0 / 16.0, 1.0 / 16.0, 9.0 / 16.0,
-    15.0 / 16.0, 7.0 / 16.0, 13.0 / 16.0, 5.0 / 16.0,
-);
-
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let color = textureSample(texture_post, sample_post, in.tex);
-
-    let offset_uv = in.pos.yx + vec2<f32>(time) * 25.0;
-    let coord = vec2<u32>(offset_uv);
-    let x = (coord.x / 2) % 4;
-    let y = (coord.y / 2) % 4;
-    let dither = BAYER_DITHER[x][y];
-
-    let spread = 0.25 + cos(time * 2.0 * PI) * 0.125;
-    let dither_noise = spread * (dither - 0.5);
-    let intensity = dot(color.rgb, vec3<f32>(1.0));
-    let adjusted_color = clamp(color.rgb + vec3<f32>(dither_noise) * intensity, vec3<f32>(0.0), vec3<f32>(1.0));
-
-    let color_depth = 96.0 * (1.0 - spread * 0.25);
-    let quantized_color = floor(adjusted_color * color_depth) / color_depth;
-
-    let final_color = vec4<f32>(quantized_color, 1.0);
+    let final_color = vhs_vignette(color, in.tex);
 
     return final_color;
+}
+
+fn vhs_vignette(color: vec4<f32>, uv: vec2<f32>) -> vec4<f32> {
+    let uv_shift = uv + sin(uv * time) * 0.025;
+    let dist = distance(uv, vec2<f32>(0.5, 0.5));
+
+    let vignette = pow(smoothstep(0.8, 0.1, dist), 2.0);
+    let noise = rand(vec2<f32>(floor(uv_shift.y * 1000.0), uv_shift.x * 1000.0 * time * 0.0025)) - 0.5;
+
+    let final_color = vignette * (color + (noise * 0.25) * length(color.rgb));
+
+    return final_color;
+}
+
+fn rand(coord: vec2<f32>) -> f32 {
+    return fract(sin(dot(coord, vec2(12.239325, 78.293723))) * 2394.2343);
 }
