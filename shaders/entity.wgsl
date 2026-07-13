@@ -11,8 +11,15 @@ struct VertexOut {
     @location(2) tex: vec2<f32>,
 };
 
-@group(0) @binding(0) var<uniform> view_proj: mat4x4<f32>;
-@group(0) @binding(1) var<uniform> view: mat4x4<f32>;
+@group(0) @binding(0) var diffuse_atlas: texture_2d<f32>;
+@group(0) @binding(1) var normal_atlas: texture_2d<f32>;
+@group(0) @binding(2) var specular_atlas: texture_2d<f32>;
+@group(0) @binding(3) var sample_atlas: sampler;
+@group(0) @binding(4) var<uniform> view_proj: mat4x4<f32>;
+@group(0) @binding(5) var<uniform> view: mat4x4<f32>;
+@group(0) @binding(6) var<uniform> screen_ar: f32;
+@group(0) @binding(7) var<uniform> flashlight: f32;
+@group(0) @binding(8) var<uniform> time: f32;
 
 @group(1) @binding(0) var<uniform> model: mat4x4<f32>;
 
@@ -28,20 +35,15 @@ fn vs_main(in: VertexIn) -> VertexOut {
     return out;
 }
 
-@group(0) @binding(2) var texture_atlas: texture_2d<f32>;
-@group(0) @binding(3) var sample_atlas: sampler;
-@group(0) @binding(4) var<uniform> screen_ar: f32;
-@group(0) @binding(5) var<uniform> flashlight: f32;
-@group(0) @binding(6) var<uniform> time: f32;
-
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
-    let color = textureSample(texture_atlas, sample_atlas, in.tex);
+    let color = textureSample(diffuse_atlas, sample_atlas, in.tex);
 
-    let dist = length(in.world_pos.xyz);
+    let dist = length(in.world_pos.xyz / in.world_pos.w);
     let proxy = 1.0 - smoothstep(4.0, 16.0, dist);
 
-    let current_speed = floor(mix(32.0, 128.0, proxy) * 8.0) / 8.0;
+    let quantized_speed = floor(proxy * 4.0) / 4.0;
+    let current_speed = mix(8.0, 32.0, proxy);
     let flicker_wave = cos(time * current_speed);
 
     let lum = mix(1.0, flicker_wave, proxy);

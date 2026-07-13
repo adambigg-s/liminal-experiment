@@ -4,6 +4,7 @@ use std::io;
 use std::io::BufRead;
 use std::range;
 use std::sync;
+use std::time;
 
 use crate::application;
 use crate::application::input;
@@ -52,14 +53,22 @@ impl application::Application for Liminal
           application::Config::builder()
                .width(1920)
                .height(1080)
+               .topleft_x(100)
+               .topleft_y(100)
                .title("super liminal game experiment")
                .build()
      }
 
      fn setup(context: &mut render::GfxContext, render: &mut render::GfxRenderer) -> anyhow::Result<Self>
      {
-          let atlas = sync::Arc::new(atlas::TextureAtlas::new("./res/liminal/", 128)?);
-          atlas.save("./res/liminal_atlas.png")?;
+          let start = time::Instant::now();
+          let diffuse_atlas = sync::Arc::new(atlas::TextureAtlas::new("./res/liminal/", 128)?);
+          diffuse_atlas.save("./res/liminal_atlas.png")?;
+          let normal_atlas = sync::Arc::new(atlas::TextureAtlas::new("./res/liminal/normal", 128)?);
+          normal_atlas.save("./res/liminal_normal_atlas.png")?;
+          let specular_atlas = sync::Arc::new(atlas::TextureAtlas::new("./res/liminal/specular", 128)?);
+          specular_atlas.save("./res/liminal_specular_atlas.png")?;
+          log::info!("Texture atlas creation: {} ms", start.elapsed().as_millis());
 
           let seed = env::args()
                .collect::<Vec<String>>()
@@ -69,7 +78,7 @@ impl application::Application for Liminal
           let terrain = terrain::TerrainGenerator::new(seed);
 
           let mut world = manager::ChunkManager::builder()
-               .atlas(sync::Arc::clone(&atlas))
+               .atlas(sync::Arc::clone(&diffuse_atlas))
                .terrain(sync::Arc::new(terrain))
                .view_distance(256)
                .chunk_height(8)
@@ -107,16 +116,18 @@ impl application::Application for Liminal
           let frame = engine::FrameData::new();
           let almond_waters = 0;
 
-          let smilers = smiler::FollowCubeManager::new(&atlas, context, render);
+          let smilers = smiler::FollowCubeManager::new(&diffuse_atlas, context, render);
 
           render.register_bind_group_layout(
                context,
                "global_layout",
                &[
-                    resource::GfxBindingLayout::Uniform,
-                    resource::GfxBindingLayout::Uniform,
+                    resource::GfxBindingLayout::Texture,
+                    resource::GfxBindingLayout::Texture,
                     resource::GfxBindingLayout::Texture,
                     resource::GfxBindingLayout::Sampler,
+                    resource::GfxBindingLayout::Uniform,
+                    resource::GfxBindingLayout::Uniform,
                     resource::GfxBindingLayout::Uniform,
                     resource::GfxBindingLayout::Uniform,
                     resource::GfxBindingLayout::Uniform,
@@ -124,7 +135,7 @@ impl application::Application for Liminal
           )?;
           render.register_bind_group_layout(
                context,
-               "dither_layout",
+               "postpass_layout",
                &[
                     resource::GfxBindingLayout::Texture,
                     resource::GfxBindingLayout::Sampler,
@@ -140,7 +151,7 @@ impl application::Application for Liminal
           render.register_pipeline::<pipelines::Dither>(
                context,
                "dither_pipe",
-               &["global_layout", "dither_layout"],
+               &["global_layout", "postpass_layout"],
           );
           render.register_pipeline::<pipelines::Entity>(
                context,
@@ -150,7 +161,7 @@ impl application::Application for Liminal
           render.register_pipeline::<pipelines::Vignette>(
                context,
                "vignette_pipe",
-               &["global_layout", "dither_layout"],
+               &["global_layout", "postpass_layout"],
           );
 
           render.register_resource(
@@ -162,15 +173,23 @@ impl application::Application for Liminal
                util::uniform::<glam::Mat4>(context, "Camera view uniform"),
           );
           render.register_resource(
-               "texture_atlas",
-               util::texture_image_mipmap(context, &atlas.atlas, "Texture atlas"),
+               "diffuse_atlas",
+               util::texture_image_mipmap(context, &diffuse_atlas.atlas, "Texture diffuse atlas"),
+          );
+          render.register_resource(
+               "normal_atlas",
+               util::texture_image_mipmap(context, &normal_atlas.atlas, "Texture normal atlas"),
+          );
+          render.register_resource(
+               "specular_atlas",
+               util::texture_image_mipmap(context, &specular_atlas.atlas, "Texture specular atlas"),
           );
           render.register_resource("texture_sampler", util::sampler_mipmap(context, "Texture atlas sampler"));
           render.register_resource(
                "screen_ar_uni",
                util::uniform::<f32>(context, "Screen aspect ratio uniform"),
           );
-          render.register_resource("dither_sampler", util::sampler_mipmap(context, "Dither sampler"));
+          render.register_resource("postpass_sampler", util::sampler_mipmap(context, "Postpass sampler"));
           render.register_resource("time_uni", util::uniform::<f32>(context, "Global time uniform"));
           render.register_resource(
                "flashlight_uni",
@@ -182,10 +201,12 @@ impl application::Application for Liminal
                "global_bg",
                "global_layout",
                &[
+                    "diffuse_atlas",
+                    "normal_atlas",
+                    "specular_atlas",
+                    "texture_sampler",
                     "camera_view_proj_uni",
                     "camera_view_uni",
-                    "texture_atlas",
-                    "texture_sampler",
                     "screen_ar_uni",
                     "flashlight_uni",
                     "time_uni",
@@ -315,17 +336,17 @@ impl application::Application for Liminal
                     }
                }
           }
-          // if input.consume_mouse_right_press()
-          // {
-          //      self.smilers.add_smiler(transform::Transform::from_position(
-          //           self.camera.inner.position
-          //                + glam::vec3(
-          //                     rand::random_range(-64.0 .. 64.0),
-          //                     rand::random_range(-8.0 .. 8.0),
-          //                     rand::random_range(-64.0 .. 64.0),
-          //                ),
-          //      ));
-          // }
+          if input.consume_mouse_right_press()
+          {
+               self.smilers.add_smiler(transform::Transform::from_position(
+                    self.camera.inner.position
+                         + glam::vec3(
+                              rand::random_range(-64.0 .. 64.0),
+                              rand::random_range(-8.0 .. 8.0),
+                              rand::random_range(-64.0 .. 64.0),
+                         ),
+               ));
+          }
 
           let mut unadd = Vec::new();
           for (index, smiler) in self.smilers.cubes.iter().enumerate()
@@ -534,13 +555,13 @@ impl application::Application for Liminal
                log::error!("Attempt to grab nonexistant global bindgroup in postpass");
                return;
           };
-          let Some(layout) = gfx_render.bind_group_layouts.get("dither_layout")
+          let Some(layout) = gfx_render.bind_group_layouts.get("postpass_layout")
           else
           {
                log::error!("Attempt to grab nonexistant layout in postpass");
                return;
           };
-          let Some(resource::GfxResource::Sampler(sampler)) = gfx_render.resources.get("dither_sampler")
+          let Some(resource::GfxResource::Sampler(sampler)) = gfx_render.resources.get("postpass_sampler")
           else
           {
                log::error!("Attempt to grab nonexistant sampler in postpass");

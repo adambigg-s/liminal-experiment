@@ -160,13 +160,13 @@ impl TextureAtlas
                let (block_name, tile_type) = stem
                     .split_once('_')
                     .ok_or_else(|| anyhow::anyhow!("File name has no '_' separator: {:?}", path))?;
-
+               let tile_type = tile_type.split('_').take(1).collect::<String>();
                if tile_type == "atlas"
                {
                     continue;
                }
 
-               let face = match tile_type
+               let face = match tile_type.as_str()
                {
                     | "top" | "t" => BlockTextureFace::Top,
                     | "side" | "s" => BlockTextureFace::Side,

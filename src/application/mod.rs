@@ -68,6 +68,8 @@ pub struct Config
 {
      height: u32,
      width: u32,
+     topleft_x: u32,
+     topleft_y: u32,
      title: &'static str,
 }
 
