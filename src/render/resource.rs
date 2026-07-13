@@ -1,4 +1,7 @@
 use std::mem;
+use std::time;
+
+use image::imageops;
 
 use crate::render::GfxContext;
 use crate::render::{self};
@@ -32,7 +35,7 @@ impl GfxBindingLayout
                     {
                          wgpu::BindingType::Texture {
                               sample_type: wgpu::TextureSampleType::Float {
-                                   filterable: false,
+                                   filterable: true,
                               },
                               view_dimension: wgpu::TextureViewDimension::D2,
                               multisampled: false,
@@ -40,7 +43,7 @@ impl GfxBindingLayout
                     }
                     | GfxBindingLayout::Sampler =>
                     {
-                         wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering)
+                         wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering)
                     }
                },
                count: None,
@@ -124,6 +127,14 @@ impl GfxTexture
           Ok(Self::new_image(context, &rgba, label))
      }
 
+     pub fn new_mipmap(context: &GfxContext, path: &str, label: &str) -> anyhow::Result<Self>
+     {
+          let image = image::open(path)?.flipv();
+          let rgba = image.to_rgba8();
+
+          Ok(Self::new_image_mipmap(context, &rgba, label))
+     }
+
      pub fn new_image(context: &GfxContext, image: &image::RgbaImage, label: &str) -> Self
      {
           let size = wgpu::Extent3d {
@@ -138,7 +149,6 @@ impl GfxTexture
                sample_count: 1,
                dimension: wgpu::TextureDimension::D2,
                format: wgpu::TextureFormat::Rgba8UnormSrgb,
-               // format: wgpu::TextureFormat::R8Unorm,
                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
                view_formats: &[],
           });
@@ -158,6 +168,68 @@ impl GfxTexture
                size,
           );
           let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+          Self {
+               texture,
+               view,
+          }
+     }
+
+     pub fn new_image_mipmap(context: &GfxContext, image: &image::RgbaImage, label: &str) -> Self
+     {
+          let time = time::Instant::now();
+
+          let mut dyn_image = image::DynamicImage::ImageRgba8(image.clone());
+
+          let size = wgpu::Extent3d {
+               width: dyn_image.width(),
+               height: dyn_image.height(),
+               depth_or_array_layers: 1,
+          };
+          let levels = size.max_mips(wgpu::TextureDimension::D2);
+          let texture = context.device.create_texture(&wgpu::TextureDescriptor {
+               label: Some(&format!("{} texture", label)),
+               size,
+               mip_level_count: levels,
+               sample_count: 1,
+               dimension: wgpu::TextureDimension::D2,
+               format: wgpu::TextureFormat::Rgba8UnormSrgb,
+               usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+               view_formats: &[],
+          });
+
+          for level in 0 .. levels
+          {
+               context.queue.write_texture(
+                    wgpu::TexelCopyTextureInfo {
+                         texture: &texture,
+                         mip_level: level,
+                         origin: wgpu::Origin3d::ZERO,
+                         aspect: wgpu::TextureAspect::All,
+                    },
+                    &dyn_image.to_rgba8(),
+                    wgpu::TexelCopyBufferLayout {
+                         offset: 0,
+                         bytes_per_row: Some(4 * dyn_image.width()),
+                         rows_per_image: Some(dyn_image.height()),
+                    },
+                    wgpu::Extent3d {
+                         width: dyn_image.width(),
+                         height: dyn_image.height(),
+                         depth_or_array_layers: 1,
+                    },
+               );
+
+               dyn_image = dyn_image.resize(
+                    (dyn_image.width() / 2).max(1),
+                    (dyn_image.height() / 2).max(1),
+                    imageops::FilterType::Nearest,
+               );
+          }
+
+          let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+          log::info!("Texture mip-map created in {} ms", time.elapsed().as_millis());
 
           Self {
                texture,

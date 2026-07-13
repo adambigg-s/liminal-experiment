@@ -107,7 +107,7 @@ impl application::Application for Liminal
           let frame = engine::FrameData::new();
           let almond_waters = 0;
 
-          let mut smilers = smiler::FollowCubeManager::new(&atlas, context, render);
+          let smilers = smiler::FollowCubeManager::new(&atlas, context, render);
 
           render.register_bind_group_layout(
                context,
@@ -158,14 +158,14 @@ impl application::Application for Liminal
           );
           render.register_resource(
                "texture_atlas",
-               util::texture_image(context, &atlas.atlas, "Texture atlas"),
+               util::texture_image_mipmap(context, &atlas.atlas, "Texture atlas"),
           );
-          render.register_resource("texture_sampler", util::sampler(context, "Texture atlas sampler"));
+          render.register_resource("texture_sampler", util::sampler_mipmap(context, "Texture atlas sampler"));
           render.register_resource(
                "screen_ar_uni",
                util::uniform::<f32>(context, "Screen aspect ratio uniform"),
           );
-          render.register_resource("dither_sampler", util::sampler(context, "Dither sampler"));
+          render.register_resource("dither_sampler", util::sampler_mipmap(context, "Dither sampler"));
           render.register_resource("time_uni", util::uniform::<f32>(context, "Global time uniform"));
           render.register_resource(
                "flashlight_uni",
@@ -193,8 +193,6 @@ impl application::Application for Liminal
           {
                log::warn!("{}", line?);
           }
-
-          smilers.add_smiler(transform::Transform::identity(), context, render)?;
 
           Ok(Self {
                camera,
@@ -282,15 +280,63 @@ impl application::Application for Liminal
                     self.world.modify(hit.position, block::Block::empty());
                     self.almond_waters += 1;
 
-                    if rand::random_bool(0.05)
+                    if rand::random_bool(0.025)
                     {
                          self.sounds.named_sound_directional(
                               &mut self.audio,
                               "follow",
                               self.camera.inner.position - self.camera.inner.forward(),
                          );
+
+                         self.smilers.add_smiler(transform::Transform::from_position(
+                              self.camera.inner.position
+                                   + glam::vec3(
+                                        rand::random_range(-256.0 .. 256.0),
+                                        rand::random_range(-8.0 .. 8.0),
+                                        rand::random_range(-256.0 .. 256.0),
+                                   ),
+                         ));
+                    }
+                    if rand::random_bool(0.005)
+                    {
+                         self.smilers.add_smiler(transform::Transform::from_position(
+                              self.camera.inner.position
+                                   + glam::vec3(
+                                        rand::random_range(-256.0 .. 256.0),
+                                        rand::random_range(-8.0 .. 8.0),
+                                        rand::random_range(-256.0 .. 256.0),
+                                   ),
+                         ));
                     }
                }
+          }
+          // if input.consume_mouse_right_press()
+          // {
+          //      self.smilers.add_smiler(transform::Transform::from_position(
+          //           self.camera.inner.position
+          //                + glam::vec3(
+          //                     rand::random_range(-64.0 .. 64.0),
+          //                     rand::random_range(-8.0 .. 8.0),
+          //                     rand::random_range(-64.0 .. 64.0),
+          //                ),
+          //      ));
+          // }
+
+          let mut unadd = Vec::new();
+          for (index, smiler) in self.smilers.cubes.iter().enumerate()
+          {
+               if (smiler.transform.position - self.camera.inner.position).length() < 2.5
+                    && (smiler.transform.position - self.camera.inner.position)
+                         .dot(self.camera.inner.forward())
+                         > 0.75
+               {
+                    self.sounds.named_sound_attenuated(&mut self.audio, "puff", 32.0);
+                    unadd.push(index);
+               }
+          }
+          for index in unadd
+          {
+               self.smilers.unadd_smiler(index);
           }
 
           if let Some(listener) = &mut self.sounds.listener

@@ -113,6 +113,7 @@ impl TerrainGenerator
                BiomePoint::builder()
                     .biome_center(0.5)
                     .weird_center(0.5)
+                    .weight(1.5)
                     .generator(Box::new(maze::Maze))
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .build(),
@@ -138,6 +139,7 @@ impl TerrainGenerator
                BiomePoint::builder()
                     .biome_center(0.6)
                     .weird_center(0.9)
+                    .weight(1.5)
                     .generator(Box::new(pitfalls::Pitfalls))
                     .build(),
                BiomePoint::builder()
@@ -186,7 +188,7 @@ impl TerrainGenerator
           let biome = self.config.biome_noise.sample(self.noise, coord);
           let weird = self.config.weird_noise.sample(self.noise, coord);
 
-          if (-1 ..= 1).contains(&chunk.offset().x) && (-1 ..= 1).contains(&chunk.offset().y)
+          if (-1 ..= 1).contains(&chunk.offset().x) && (-1 ..= 1).contains(&chunk.offset().z)
           {
                empty_dark::EmptyDark.generate(chunk, &self.noise, &self.config, &mut outgoing_deltas);
                // debugging_biome::DebuggingBiome.generate(chunk, &self.noise, &self.config, &mut outgoing_deltas);

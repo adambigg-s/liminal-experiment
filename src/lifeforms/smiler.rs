@@ -28,30 +28,17 @@ pub struct FollowCubeManager
 
 impl FollowCubeManager
 {
-     pub fn add_smiler(
-          &mut self,
-          transform: transform::Transform,
-          context: &mut render::GfxContext,
-          render: &mut render::GfxRenderer,
-     ) -> anyhow::Result<()>
+     pub fn add_smiler(&mut self, transform: transform::Transform)
      {
-          render.register_resource(
-               &self.transform_key(self.cubes.len()),
-               util::uniform::<glam::Mat4>(context, "Smiler model transform"),
-          );
-          render.register_bind_group(
-               context,
-               &self.transform_key(self.cubes.len()),
-               "entity_layout",
-               &[&self.transform_key(self.cubes.len())],
-          )?;
-
           self.cubes.push(FollowCube {
                transform,
                health: 100,
           });
+     }
 
-          Ok(())
+     pub fn unadd_smiler(&mut self, index: usize)
+     {
+          self.cubes.remove(index);
      }
 
      pub fn mesh_key(&self) -> &'static str
@@ -73,7 +60,7 @@ impl FollowCubeManager
      {
           let mut mesh = rectilinear::RectilinearMesh::unit_cube();
           mesh.shift(glam::Vec3::splat(-0.5));
-          mesh.scale(glam::Vec3::splat(0.3));
+          mesh.scale(glam::Vec3::splat(2.5));
 
           let mut vertices = Vec::new();
           (0 .. mesh.size).for_each(|index| {
@@ -95,6 +82,7 @@ impl FollowCubeManager
                });
           });
           let indices = mesh.index;
+
           render.register_mesh(self.mesh_key(), util::mesh(context, &vertices, &indices));
      }
 }
@@ -123,12 +111,24 @@ impl lifeforms::LifeForm for FollowCubeManager
                     smiler.transform.position,
                     player_info.collider.center(),
                     player_info.kinematics.up,
-               ).inverse();
+               )
+               .inverse();
 
                let position = &mut smiler.transform.position;
-               let diff = player_info.collider.center() - *position;
+               let dir = player_info.collider.center() - *position;
+               let distance = dir.length();
+               let direction = dir / distance;
 
-               *position += diff * dt;
+               if distance < 2.0
+               {
+                    continue;
+               }
+
+               let base_speed = 4.0;
+               let distance_coeff = 0.05;
+               let speed = base_speed + distance * distance_coeff;
+
+               *position += direction * speed * dt;
           }
      }
 
@@ -136,6 +136,20 @@ impl lifeforms::LifeForm for FollowCubeManager
      {
           for index in 0 .. self.cubes.len()
           {
+               if !render.resources.contains_key(&self.transform_key(index))
+               {
+                    render.register_resource(
+                         &self.transform_key(index),
+                         util::uniform::<glam::Mat4>(context, "Smiler model transform"),
+                    );
+                    render.register_bind_group(
+                         context,
+                         &self.transform_key(index),
+                         "entity_layout",
+                         &[&self.transform_key(index)],
+                    );
+               }
+
                if let Some(resource::GfxResource::Uniform(transform)) =
                     render.resources.get(&self.transform_key(index))
                {

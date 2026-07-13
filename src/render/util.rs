@@ -27,6 +27,15 @@ pub fn texture(context: &render::GfxContext, path: &str, label: &str)
      Ok(resource::GfxResource::Texture(resource::GfxTexture::new(context, path, label)?))
 }
 
+pub fn texture_mipmap(
+     context: &render::GfxContext,
+     path: &str,
+     label: &str,
+) -> anyhow::Result<resource::GfxResource>
+{
+     Ok(resource::GfxResource::Texture(resource::GfxTexture::new_mipmap(context, path, label)?))
+}
+
 pub fn texture_image(
      context: &render::GfxContext,
      image: &image::RgbaImage,
@@ -34,6 +43,15 @@ pub fn texture_image(
 ) -> resource::GfxResource
 {
      resource::GfxResource::Texture(resource::GfxTexture::new_image(context, image, label))
+}
+
+pub fn texture_image_mipmap(
+     context: &render::GfxContext,
+     image: &image::RgbaImage,
+     label: &str,
+) -> resource::GfxResource
+{
+     resource::GfxResource::Texture(resource::GfxTexture::new_image_mipmap(context, image, label))
 }
 
 pub fn sampler(context: &render::GfxContext, label: &str) -> resource::GfxResource
@@ -45,7 +63,23 @@ pub fn sampler(context: &render::GfxContext, label: &str) -> resource::GfxResour
           address_mode_w: wgpu::AddressMode::Repeat,
           mag_filter: wgpu::FilterMode::Nearest,
           min_filter: wgpu::FilterMode::Nearest,
-          mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+          ..Default::default()
+     }))
+}
+
+pub fn sampler_mipmap(context: &render::GfxContext, label: &str) -> resource::GfxResource
+{
+     resource::GfxResource::Sampler(context.device.create_sampler(&wgpu::SamplerDescriptor {
+          label: Some(&format!("{} sampler", label)),
+          address_mode_u: wgpu::AddressMode::Repeat,
+          address_mode_v: wgpu::AddressMode::Repeat,
+          address_mode_w: wgpu::AddressMode::Repeat,
+          mag_filter: wgpu::FilterMode::Nearest,
+          min_filter: wgpu::FilterMode::Nearest,
+          mipmap_filter: wgpu::MipmapFilterMode::Linear,
+          lod_min_clamp: 0.0,
+          lod_max_clamp: 4.0,
+          anisotropy_clamp: 1,
           ..Default::default()
      }))
 }

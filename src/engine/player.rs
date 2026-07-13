@@ -183,6 +183,17 @@ impl PlayerSoundController
           log::error!("Error playing named audio");
      }
 
+     pub fn named_sound_attenuated(&self, audio: &mut kira::AudioManager, name: &str, db: f32)
+     {
+          if let Some(sound) = self.named_sounds.get(name)
+          {
+               audio.play(sound.clone().volume(db)).unwrap();
+               return;
+          }
+
+          log::error!("Error playing named audio");
+     }
+
      pub fn named_sound_directional(
           &mut self,
           audio: &mut kira::AudioManager,

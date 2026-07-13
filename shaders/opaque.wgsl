@@ -70,7 +70,7 @@ struct FragmentOutput {
 fn fs_main(in: VertexOut) -> FragmentOutput {
     var out: FragmentOutput;
 
-    let diffuse_color = textureSample(texture_atlas, sample_atlas, in.tex);
+    let diffuse_color = textureSampleBias(texture_atlas, sample_atlas, in.tex, -0.25);
     if diffuse_color.a < BACKROOMS_EPS {
         discard;
     }

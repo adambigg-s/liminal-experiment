@@ -6,8 +6,9 @@ struct VertexIn {
 
 struct VertexOut {
     @builtin(position) pos: vec4<f32>,
-    @location(0) nor: vec3<f32>,
-    @location(1) tex: vec2<f32>,
+    @location(0) world_pos: vec4<f32>,
+    @location(1) nor: vec3<f32>,
+    @location(2) tex: vec2<f32>,
 };
 
 @group(0) @binding(0) var<uniform> view_proj: mat4x4<f32>;
@@ -20,6 +21,7 @@ fn vs_main(in: VertexIn) -> VertexOut {
     var out: VertexOut;
 
     out.pos = view_proj * model * vec4<f32>(in.pos, 1.0);
+    out.world_pos = view * model * vec4<f32>(in.pos, 1.0);
     out.nor = (view * vec4<f32>(in.nor, 1.0)).xyz;
     out.tex = in.tex;
 
@@ -36,6 +38,17 @@ fn vs_main(in: VertexIn) -> VertexOut {
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     let color = textureSample(texture_atlas, sample_atlas, in.tex);
 
-    return color;
+    let dist = length(in.world_pos.xyz);
+    let proxy = 1.0 - smoothstep(4.0, 16.0, dist);
+
+    let current_speed = floor(mix(32.0, 128.0, proxy) * 8.0) / 8.0;
+    let flicker_wave = cos(time * current_speed);
+
+    let lum = mix(1.0, flicker_wave, proxy);
+    let attenuated = 1.0 - smoothstep(0.0, 16.0, dist);
+
+    let final_color = color * lum * attenuated;
+
+    return final_color;
 }
 
