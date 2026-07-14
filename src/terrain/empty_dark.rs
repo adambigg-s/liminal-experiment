@@ -41,6 +41,7 @@ impl terrain::BiomeGeneration for EmptyDark
                     let coord = glam::ivec3(x, 0, z);
                     if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.875
                     {
+                         // *chunk.get_mut(coord) = block::Block::ExitSign;
                          *chunk.get_mut(coord) = block::Block::AlmondWater;
                     }
                }

@@ -38,6 +38,8 @@ pub enum Block
      Corrupt1,
      Corrupt2,
      Corrupt3,
+     ExitSign,
+     ExitDoor,
      BlockCounter,
 }
 
@@ -54,6 +56,8 @@ impl Block
           Block::Corrupt1,
           Block::Corrupt2,
           Block::Corrupt3,
+          Block::ExitSign,
+          Block::ExitDoor,
      ];
      const SPECIAL: [Block; 3] = [Block::Distressed1, Block::Distressed2, Block::Distressed3];
      const CORRUPT: [Block; 3] = [Block::Corrupt1, Block::Corrupt2, Block::Corrupt3];
@@ -83,6 +87,8 @@ impl Block
                | Block::Corrupt1 => "corrupt1",
                | Block::Corrupt2 => "corrupt2",
                | Block::Corrupt3 => "corrupt3",
+               | Block::ExitSign => "exitsign",
+               | Block::ExitDoor => "door",
                | Block::BlockCounter => "",
           }
      }
@@ -94,6 +100,10 @@ impl Block
                | Block::Air => light::Light::new(0),
                | Block::Light => light::Light::new(0),
                | Block::AlmondWater => light::Light::new(0),
+               | Block::ExitSign => light::Light::new(0),
+               | Block::Corrupt1 => light::Light::new(3),
+               | Block::Corrupt2 => light::Light::new(3),
+               | Block::Corrupt3 => light::Light::new(3),
                | _ => light::Light::max_light(),
           }
      }
@@ -116,6 +126,7 @@ impl Block
                | Block::Corrupt1 => Some(light::Light::new(2)),
                | Block::Corrupt2 => Some(light::Light::new(3)),
                | Block::Corrupt3 => Some(light::Light::new(4)),
+               | Block::ExitSign => Some(light::Light::new(8)),
                | _ => None,
           }
      }

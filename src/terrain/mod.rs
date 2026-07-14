@@ -2,6 +2,7 @@ pub mod dark_maze;
 pub mod debugging_biome;
 pub mod empty;
 pub mod empty_dark;
+pub mod escape;
 pub mod maze;
 pub mod parkour;
 pub mod pillars;
@@ -87,7 +88,7 @@ impl TerrainGenerator
                .weird_noise(
                     NoiseLayer::builder()
                          .offset(glam::DVec3::splat(-90.18973095))
-                         .freq(glam::dvec3(0.5, 0.1, 0.5))
+                         .freq(glam::dvec3(1.5, 0.5, 1.5))
                          .build(),
                )
                .feature_noise(
@@ -135,17 +136,26 @@ impl TerrainGenerator
                     .biome_center(0.5)
                     .weird_center(0.1)
                     .generator(Box::new(pillars::Pillars))
+                    // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.6)
                     .weird_center(0.9)
                     .weight(1.5)
                     .generator(Box::new(pitfalls::Pitfalls))
+                    // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.1)
                     .weird_center(0.9)
                     .generator(Box::new(superliminal::SuperLiminal))
+                    // .generator(Box::new(debugging_biome::DebuggingBiome))
+                    .build(),
+               BiomePoint::builder()
+                    .biome_center(0.0)
+                    .weird_center(1.0)
+                    .weight(2.0)
+                    .generator(Box::new(escape::Escape))
                     .build(),
           ];
 

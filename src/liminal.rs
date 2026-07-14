@@ -243,9 +243,9 @@ impl application::Application for Liminal
           self.world.update_chunks(self.camera.inner.position, self.frame.dt);
           self.smilers.update(&self.player, self.frame.dt);
 
-          if self.almond_waters > 100 || self.player.collider.center().y > 100.0
+          if self.almond_waters > 100
           {
-               log::error!("Nice job! You escaped by finding the 100 almond waters or climbing 100 meters");
+               log::error!("Nice job! You escaped by finding the 100 almond waters");
                input.request_quit = !input.request_quit;
           }
 
@@ -309,50 +309,42 @@ impl application::Application for Liminal
 
                     if rand::random_bool(0.025)
                     {
+                         let position = self.camera.inner.position
+                              + glam::vec3(
+                                   rand::random_range(-256.0 .. 256.0),
+                                   rand::random_range(-8.0 .. 8.0),
+                                   rand::random_range(-256.0 .. 256.0),
+                              );
+                         self.smilers.add_smiler(transform::Transform::from_position(position));
                          self.sounds.named_sound_directional(
                               &mut self.audio,
                               "follow",
-                              self.camera.inner.position - self.camera.inner.forward(),
+                              self.camera.inner.position - self.camera.inner.forward() * 10.0,
                          );
-
-                         self.smilers.add_smiler(transform::Transform::from_position(
-                              self.camera.inner.position
-                                   + glam::vec3(
-                                        rand::random_range(-256.0 .. 256.0),
-                                        rand::random_range(-8.0 .. 8.0),
-                                        rand::random_range(-256.0 .. 256.0),
-                                   ),
-                         ));
-                    }
-                    if rand::random_bool(0.005)
-                    {
-                         self.smilers.add_smiler(transform::Transform::from_position(
-                              self.camera.inner.position
-                                   + glam::vec3(
-                                        rand::random_range(-256.0 .. 256.0),
-                                        rand::random_range(-8.0 .. 8.0),
-                                        rand::random_range(-256.0 .. 256.0),
-                                   ),
-                         ));
                     }
                }
           }
           if input.consume_mouse_right_press()
           {
-               // self.smilers.add_smiler(transform::Transform::from_position(
-               //      self.camera.inner.position
-               //           + glam::vec3(
-               //                rand::random_range(-64.0 .. 64.0),
-               //                rand::random_range(-8.0 .. 8.0),
-               //                rand::random_range(-64.0 .. 64.0),
-               //           ),
-               // ));
-
                self.camera.fov -= 32.0;
+               self.sounds.named_sound(&mut self.audio, "music");
+               let position = self.camera.inner.position
+                    + glam::vec3(
+                         rand::random_range(-256.0 .. 256.0),
+                         rand::random_range(-8.0 .. 8.0),
+                         rand::random_range(-256.0 .. 256.0),
+                    );
+               self.smilers.add_smiler(transform::Transform::from_position(position));
+               self.sounds.named_sound_directional(
+                    &mut self.audio,
+                    "follow",
+                    self.camera.inner.position - self.camera.inner.forward() * 10.0,
+               );
           }
           if input.consume_mouse_right_release()
           {
                self.camera.fov += 32.0;
+               self.sounds.named_sound_stop("music");
           }
 
           let mut unadd = Vec::new();
@@ -363,13 +355,22 @@ impl application::Application for Liminal
                          .dot(self.camera.inner.forward())
                          > 0.75
                {
-                    self.sounds.named_sound_attenuated(&mut self.audio, "puff", 24.0);
+                    self.sounds.named_sound_attenuated(&mut self.audio, "puff", 8.0);
                     unadd.push(index);
                }
           }
           for index in unadd
           {
                self.smilers.unadd_smiler(index);
+          }
+
+          if self.frame.tick.is_multiple_of(5000)
+          {
+               self.sounds.named_sound_directional(
+                    &mut self.audio,
+                    "bulbbreak",
+                    self.camera.inner.position + self.camera.inner.forward() * -10.0,
+               );
           }
 
           if let Some(listener) = &mut self.sounds.listener
@@ -411,7 +412,7 @@ impl application::Application for Liminal
                     }
                     if input.get_key_pres("space")
                     {
-                         self.player.kinematics.jump(9.5);
+                         self.player.kinematics.jump(8.0);
                     }
                     if input.get_key_pres("shiftleft")
                     {
@@ -427,7 +428,7 @@ impl application::Application for Liminal
                     let movement = (right * dx + forward * dz).normalize_or_zero();
                     self.player.kinematics.velocity.x += movement.x * frame_movement_speed * self.frame.dt;
                     self.player.kinematics.velocity.z += movement.z * frame_movement_speed * self.frame.dt;
-                    self.player.kinematics.apply_gravity(32.0, self.frame.dt);
+                    self.player.kinematics.apply_gravity(28.0, self.frame.dt);
                     self.player.kinematics.apply_drag(24.0, self.frame.dt);
                     self.player.collider =
                          self.player.kinematics.translate(self.player.collider, &self.world, self.frame.dt);

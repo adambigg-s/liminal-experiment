@@ -48,6 +48,7 @@ pub struct PlayerHeadBobber
      pub minor_amp: f32,
 
      velocity_coeff: f32,
+     pub zero_velocity: f32,
 }
 
 impl PlayerHeadBobber
@@ -59,7 +60,8 @@ impl PlayerHeadBobber
                minor_freq: f32::consts::TAU * 4.0,
                major_amp: 0.05,
                minor_amp: 0.0125,
-               velocity_coeff: 1.0 / 3.0,
+               velocity_coeff: 0.25,
+               zero_velocity: 0.05,
           }
      }
 
@@ -75,7 +77,7 @@ impl PlayerHeadBobber
           let up = camera.inner.up();
           let right = camera.inner.right();
           let velocity = kinematics.velocity.with_y(0.0).length();
-          let wobble_factor = self.velocity_coeff * velocity;
+          let wobble_factor = self.velocity_coeff * velocity + self.zero_velocity;
 
           right * (cmaj * self.major_amp + cmin * self.minor_amp) * wobble_factor
                + up * (smaj * self.major_amp + smin * self.minor_amp) * wobble_factor
@@ -90,7 +92,8 @@ pub struct PlayerSoundController
      pub ambience: Option<static_sound::StaticSoundData>,
      pub listener: Option<listener::ListenerHandle>,
 
-     pub tracks: Vec<track::SpatialTrackHandle>,
+     pub spatial_tracks: Vec<track::SpatialTrackHandle>,
+     pub tracks: Vec<(static_sound::StaticSoundHandle, &'static str)>,
 
      last_sound: usize,
      last_sound_time: f32,
@@ -145,6 +148,7 @@ impl PlayerSoundController
           }
 
           let listener = None;
+          let spatial_tracks = Vec::new();
           let tracks = Vec::new();
 
           Ok(Self {
@@ -152,6 +156,7 @@ impl PlayerSoundController
                walking_sound,
                ambience,
                listener,
+               spatial_tracks,
                tracks,
 
                last_sound: 0,
@@ -172,26 +177,36 @@ impl PlayerSoundController
           log::error!("Error playing ambience track");
      }
 
-     pub fn named_sound(&self, audio: &mut kira::AudioManager, name: &str)
+     pub fn named_sound(&mut self, audio: &mut kira::AudioManager, name: &'static str)
      {
           if let Some(sound) = self.named_sounds.get(name)
           {
-               audio.play(sound.clone()).unwrap();
+               self.tracks.push((audio.play(sound.clone()).unwrap(), name));
                return;
           }
 
           log::error!("Error playing named audio");
      }
 
-     pub fn named_sound_attenuated(&self, audio: &mut kira::AudioManager, name: &str, db: f32)
+     pub fn named_sound_attenuated(&mut self, audio: &mut kira::AudioManager, name: &'static str, db: f32)
      {
           if let Some(sound) = self.named_sounds.get(name)
           {
-               audio.play(sound.clone().volume(db)).unwrap();
+               self.tracks.push((audio.play(sound.clone().volume(db)).unwrap(), name));
                return;
           }
 
           log::error!("Error playing named audio");
+     }
+
+     pub fn named_sound_stop(&mut self, name: &'static str)
+     {
+          self.tracks.iter_mut().for_each(|(handle, track_name)| {
+               if *track_name == name
+               {
+                    handle.stop(kira::Tween::default());
+               }
+          });
      }
 
      pub fn named_sound_directional(
@@ -201,14 +216,14 @@ impl PlayerSoundController
           location: glam::Vec3,
      )
      {
-          self.tracks.retain_mut(|track| track.state() != track::TrackPlaybackState::Paused);
+          self.spatial_tracks.retain_mut(|track| track.state() != track::TrackPlaybackState::Paused);
           if let (Some(sound), Some(listener)) = (self.named_sounds.get(name), self.listener.as_ref())
           {
                let mut track = audio
                     .add_spatial_sub_track(listener, location, kira::track::SpatialTrackBuilder::default())
                     .unwrap();
                track.play(sound.clone()).unwrap();
-               self.tracks.push(track);
+               self.spatial_tracks.push(track);
                return;
           }
 
