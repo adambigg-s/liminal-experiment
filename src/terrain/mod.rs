@@ -99,7 +99,7 @@ impl TerrainGenerator
                .random_noise(
                     NoiseLayer::builder()
                          .offset(glam::DVec3::splat(-20202.234234234))
-                         .freq(glam::dvec3(999.999, 999.999, 999.999))
+                         .freq(glam::dvec3(77.77, 77.77, 77.77))
                          .build(),
                )
                .build();

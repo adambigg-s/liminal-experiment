@@ -43,11 +43,11 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     let proxy = 1.0 - smoothstep(4.0, 16.0, dist);
 
     let quantized_speed = floor(proxy * 4.0) / 4.0;
-    let current_speed = mix(8.0, 32.0, proxy);
+    let current_speed = mix(16.0, 32.0, proxy);
     let flicker_wave = cos(time * current_speed);
 
     let lum = mix(1.0, flicker_wave, proxy);
-    let attenuated = 1.0 - smoothstep(0.0, 16.0, dist);
+    let attenuated = smoothstep(16.0, 4.0, dist);
 
     let final_color = color * lum * attenuated;
 

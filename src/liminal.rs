@@ -81,11 +81,11 @@ impl application::Application for Liminal
                .atlas(sync::Arc::clone(&diffuse_atlas))
                .terrain(sync::Arc::new(terrain))
                .view_distance(256)
+               .view_coefficient(glam::usizevec3(1, 4, 1))
                .chunk_height(8)
                .chunk_width(32)
-               .view_coefficient(glam::usizevec3(1, 4, 1))
                .build();
-          world.spawn_workers(2);
+          world.spawn_workers(3);
 
           let mut camera = camera::Camera::builder()
                .ar(context.config.width as f32 / context.config.height as f32)
@@ -251,6 +251,7 @@ impl application::Application for Liminal
 
           if input.consume_key_press("escape")
           {
+               log::info!("{}", self.world.chunk_map.telem);
                input.request_quit = !input.request_quit;
           }
           if input.consume_key_press("keyq")
@@ -338,14 +339,20 @@ impl application::Application for Liminal
           }
           if input.consume_mouse_right_press()
           {
-               self.smilers.add_smiler(transform::Transform::from_position(
-                    self.camera.inner.position
-                         + glam::vec3(
-                              rand::random_range(-64.0 .. 64.0),
-                              rand::random_range(-8.0 .. 8.0),
-                              rand::random_range(-64.0 .. 64.0),
-                         ),
-               ));
+               // self.smilers.add_smiler(transform::Transform::from_position(
+               //      self.camera.inner.position
+               //           + glam::vec3(
+               //                rand::random_range(-64.0 .. 64.0),
+               //                rand::random_range(-8.0 .. 8.0),
+               //                rand::random_range(-64.0 .. 64.0),
+               //           ),
+               // ));
+
+               self.camera.fov -= 32.0;
+          }
+          if input.consume_mouse_right_release()
+          {
+               self.camera.fov += 32.0;
           }
 
           let mut unadd = Vec::new();
@@ -356,7 +363,7 @@ impl application::Application for Liminal
                          .dot(self.camera.inner.forward())
                          > 0.75
                {
-                    self.sounds.named_sound_attenuated(&mut self.audio, "puff", 32.0);
+                    self.sounds.named_sound_attenuated(&mut self.audio, "puff", 24.0);
                     unadd.push(index);
                }
           }
@@ -474,6 +481,8 @@ impl application::Application for Liminal
           self.camera.inner.rotation = glam::Quat::from_rotation_z(0.0)
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
+
+          // log::info!("FPS: {:.3}", self.frame.dt.recip());
      }
 
      fn gfx_frame(

@@ -123,9 +123,9 @@ impl DecoratorBillboard
           match self
           {
                | DecoratorBillboard::DiagPosFront => glam::ivec3(1, 0, -1).as_vec3().normalize(),
-               | DecoratorBillboard::DiagPosBack => glam::ivec3(1, 0, 1).as_vec3().normalize(),
-               | DecoratorBillboard::DiagNegFront => glam::ivec3(-1, 0, -1).as_vec3().normalize(),
-               | DecoratorBillboard::DiagNegBack => glam::ivec3(1, 0, -1).as_vec3().normalize(),
+               | DecoratorBillboard::DiagPosBack => glam::ivec3(-1, 0, 1).as_vec3().normalize(),
+               | DecoratorBillboard::DiagNegFront => glam::ivec3(1, 0, 1).as_vec3().normalize(),
+               | DecoratorBillboard::DiagNegBack => glam::ivec3(-1, 0, -1).as_vec3().normalize(),
           }
      }
 

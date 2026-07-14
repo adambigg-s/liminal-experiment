@@ -1,6 +1,9 @@
+const PI = cos(-1.0);
+
 const BACKROOMS_EPS: f32 = 1e-3;
 
-const AMBIENT: f32 = 0.01;
+const BACKROOMS_AMBIENT: f32 = 0.01;
+const BACKROOMS_LIGHT: vec4<f32> = vec4<f32>(1.0, 0.90, 0.75, 1.0);
 
 const FADE_COLOR: vec3<f32> = vec3<f32>(0.005, 0.0, 0.0);
 
@@ -8,15 +11,10 @@ const FOG_EXP: f32 = 1.5;
 const FOG_START: f32 = 25.0;
 const FOG_END: f32 = 125.0;
 
-const VICINITY_START: f32 = 7.5;
-const VICINITY_STRENGTH: f32 = 0.05;
-
-const BACKROOMS_LIGHT: vec4<f32> = vec4<f32>(1.0, 0.90, 0.60, 1.0);
-
-const FL_END: f32 = 50.0;
+const FL_END: f32 = 100.0;
 const FL_INNER: f32 = 0.1;
 const FL_OUTER: f32 = 1.5;
-const FL_STRENGTH: f32 = 1.0;
+const FL_STRENGTH: f32 = 3.0;
 
 struct VertexIn {
     @location(0) pos: vec3<f32>,
@@ -34,7 +32,7 @@ struct VertexOut {
     @location(2) tex: vec2<f32>,
     @location(3) fil: f32,
     @location(4) ao: f32,
-    @location(5) ndc: vec3<f32>,
+    @location(5) @interpolate(linear) ndc: vec3<f32>,
 }
 
 @group(0) @binding(0) var diffuse_atlas: texture_2d<f32>;
@@ -72,36 +70,74 @@ fn fs_main(in: VertexOut) -> FragmentOutput {
     var out: FragmentOutput;
 
     let diffuse_color = textureSampleBias(diffuse_atlas, sample_atlas, in.tex, -0.25);
+    let normal_color = textureSample(normal_atlas, sample_atlas, in.tex).xyz * 2.0 - 1.0;
+    let specular_color = textureSample(specular_atlas, sample_atlas, in.tex);
+
     if diffuse_color.a < BACKROOMS_EPS {
         discard;
     }
 
-    let depth = length(in.world_pos.xyz);
-    let fog_factor = pow(clamp((depth - FOG_START) / (FOG_END - FOG_START), 0.0, 1.0), FOG_EXP);
-    let vicinity_factor = clamp(1.0 - depth / VICINITY_START, 0.0, 1.0);
+    let dp1 = dpdx(in.world_pos.xyz);
+    let dp2 = dpdy(in.world_pos.xyz);
+    let duv1 = dpdx(in.tex);
+    let duv2 = dpdy(in.tex);
+    let det = duv1.x * duv2.y - duv2.x * duv1.y;
+    let inv_det = 1.0 / det;
+    let tangent = normalize((dp1 * duv2.y - dp2 * duv1.y) * inv_det);
+    let bitangent = normalize((-dp1 * duv2.x + dp2 * duv1.x) * inv_det);
+    let face_normal = normalize(in.nor);
+    let tbn = mat3x3<f32>(tangent, bitangent, face_normal);
+    let normal_map_strength = 0.25;
+    let normal = normalize(mix(face_normal, tbn * normal_color, normal_map_strength));
 
-    let center = vec2<f32>(in.ndc.x * screen_ar, in.ndc.y);
-    let dist = length(center);
-    let normal = normalize(in.nor);
-    let spot_factor = pow(smoothstep(FL_OUTER, FL_INNER, dist), 3.0);
-    let fl_attenuation = pow(clamp(1.0 - pow((depth / FL_END), 2.0), 0.0, 1.0), 4.0);
-    let fl_dir = normalize(-in.world_pos.xyz);
-    let fl_surface = max(dot(fl_dir, normal), 0.0);
-    let fl_light = spot_factor * fl_attenuation * fl_surface * FL_STRENGTH * flashlight;
+    let dist = length(in.world_pos.xyz);
+    let fog_factor = pow(clamp((dist - FOG_START) / (FOG_END - FOG_START), 0.0, 1.0), FOG_EXP);
 
-    let ao = pow(in.ao, 1.0);
-    var lum = pow(clamp(in.fil, AMBIENT, 1.0), 2.0) * 1.5;
-    let vicinity_light = pow(vicinity_factor, 3.0) * VICINITY_STRENGTH;
-    let tint_mix = smoothstep(0.8, 1.0, in.fil);
+    let cone_center = vec2<f32>(in.ndc.x * screen_ar, in.ndc.y);
+    let cone_dist = length(cone_center);
+    let spot_factor = pow(smoothstep(FL_OUTER, FL_INNER, cone_dist), 3.0);
+    let fl_attenuation = distance_attenuation(dist, FL_END);
+
+    let view_dir = normalize(-in.world_pos.xyz);
+    let light_dir = view_dir;
+    let fl_intensity = max(dot(normal, light_dir), 0.0);
+    let fl_diffuse = spot_factor * fl_attenuation * fl_intensity * FL_STRENGTH * flashlight;
+    let specular_shape = specular(normal, view_dir, light_dir, 32.0);
+    let specular_intensity = 0.5;
+    let fl_specular = specular_shape * specular_color.rgb * specular_intensity * spot_factor * fl_attenuation * fl_intensity * flashlight;
+
+    let face_light = dot(face_normal, normal) * in.fil;
+    let light_boost = 1.5;
+    let ambient_lum = pow(clamp(face_light, BACKROOMS_AMBIENT, 1.0), 2.0) * light_boost;
+    let tint_mix = smoothstep(0.8, 1.0, face_light);
     let light_color = mix(BACKROOMS_LIGHT, vec4<f32>(1.0), tint_mix);
 
-    var total_light = (lum + vicinity_light + fl_light) * light_color;
-    let shaded_color = diffuse_color * ao * total_light;
+    let ambient_light_dir = face_normal;
+    let ambient_intensity = max(dot(normal, ambient_light_dir), 0.0);
+    let ambient_shine = 16.0;
+    let ambient_specular_shape = specular(normal, view_dir, ambient_light_dir, ambient_shine);
+    let ambient_specular_intensity = 0.25;
+    let ambient_specular = ambient_specular_shape * ambient_specular_intensity * specular_color.rgb * ambient_intensity * in.fil;
+
+    let total_light = (vec3<f32>(ambient_lum + fl_diffuse) + fl_specular + ambient_specular) * light_color.rgb;
+    let shaded_color = vec4<f32>(diffuse_color.rgb * in.ao * total_light, diffuse_color.a);
 
     let final_color = mix(shaded_color, vec4<f32>(FADE_COLOR, 1.0), fog_factor);
 
     out.depth = in.pos.z;
-    out.color = final_color;
+    out.color = clamp(final_color, vec4<f32>(0.0), vec4<f32>(1.0));
 
     return out;
+}
+
+fn distance_attenuation(dist: f32, range: f32) -> f32 {
+    let window = clamp(1.0 - pow(dist / range, 4.0), 0.0, 1.0);
+    return window * window / max(dist * dist, 1.0);
+}
+
+fn specular(normal: vec3<f32>, view_dir: vec3<f32>, light_dir: vec3<f32>, shine: f32) -> f32 {
+    let half_dir = normalize(view_dir + light_dir);
+    let intensity = max(dot(normal, half_dir), 0.0);
+    let norm_factor = (shine + 8.0) / (8.0 * PI);
+    return norm_factor * pow(intensity, shine);
 }
