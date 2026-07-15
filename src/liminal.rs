@@ -38,6 +38,7 @@ pub struct Liminal
      pub player: player::PlayerController,
      pub sounds: player::PlayerSoundController,
      pub head_bobber: player::PlayerHeadBobber,
+     pub sprinter: player::PlayerSprinter,
      pub flashlight: f32,
      pub almond_waters: i32,
 
@@ -110,6 +111,15 @@ impl application::Application for Liminal
                .build();
           let mut sounds = player::PlayerSoundController::new("./res/audio/")?;
           let head_bobber = player::PlayerHeadBobber::new();
+          let sprinter = player::PlayerSprinter {
+               movespeed_modifier: 1.75,
+               stamina: 100.0,
+               max_stamina: 100.0,
+               stamina_drain: 20.0,
+               stamina_regen: 25.0,
+               run_thresh: 40.0,
+               exhausted: false,
+          };
           let mut audio = kira::AudioManager::new(kira::AudioManagerSettings::default())?;
           sounds.ambience(&mut audio);
           sounds.listener = Some(audio.add_listener(glam::Vec3::ZERO, glam::Quat::IDENTITY)?);
@@ -227,6 +237,7 @@ impl application::Application for Liminal
                player,
                sounds,
                head_bobber,
+               sprinter,
                flashlight,
                almond_waters,
 
@@ -452,7 +463,11 @@ impl application::Application for Liminal
                     }
                     if input.get_key_pres("shiftleft")
                     {
-                         frame_movement_speed *= 1.75;
+                         frame_movement_speed *= self.sprinter.player_speed(self.frame.dt, true);
+                    }
+                    else
+                    {
+                         frame_movement_speed *= self.sprinter.player_speed(self.frame.dt, false);
                     }
                     if input.get_key_pres("controlleft")
                     {
@@ -519,7 +534,7 @@ impl application::Application for Liminal
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
 
-          log::info!("FPS: {:.3}", self.frame.dt.recip());
+          // log::info!("FPS: {:.3}", self.frame.dt.recip());
      }
 
      fn gfx_frame(

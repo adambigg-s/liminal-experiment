@@ -299,3 +299,45 @@ impl PlayerSoundController
      //      }
      // }
 }
+
+#[derive(bon::Builder, Debug)]
+pub struct PlayerSprinter
+{
+     pub movespeed_modifier: f32,
+     pub stamina: f32,
+     pub max_stamina: f32,
+     pub stamina_drain: f32,
+     pub stamina_regen: f32,
+     pub run_thresh: f32,
+     pub exhausted: bool,
+}
+
+impl PlayerSprinter
+{
+     pub fn player_speed(&mut self, dt: f32, sprint: bool) -> f32
+     {
+          if self.exhausted && self.stamina > self.run_thresh
+          {
+               self.exhausted = false;
+          }
+
+          let is_sprinting = sprint && !self.exhausted && self.stamina > 0.0;
+
+          if is_sprinting
+          {
+               self.stamina = (self.stamina - self.stamina_drain * dt).max(0.0);
+               if self.stamina == 0.0
+               {
+                    self.exhausted = true;
+               }
+
+               self.movespeed_modifier
+          }
+          else
+          {
+               self.stamina = (self.stamina + self.stamina_regen * dt).min(self.max_stamina);
+
+               1.0
+          }
+     }
+}
