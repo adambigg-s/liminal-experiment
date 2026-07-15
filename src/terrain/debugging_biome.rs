@@ -35,4 +35,8 @@ impl terrain::BiomeGeneration for DebuggingBiome
 
           *chunk.get_mut(glam::IVec3::ZERO) = block::Block::Light;
      }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+         self
+    }
 }

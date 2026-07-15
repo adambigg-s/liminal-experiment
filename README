@@ -7,10 +7,11 @@ KEYBINDINGS
 
 Q          - cycle mouse grab mode & fullscreen game
 Esc        - quit
+LClick     - interact
+RClick     - focus
+T          - toggle flashlight
 Mouse      - rotational movement
 W, A, S, D - translational movement
-LClick     - interact
-T          - toggle flashlight
 LShift     - sprint
 LCtrl      - crouch
 +          - increase look sense
@@ -20,7 +21,8 @@ Y          - toggle noclip
 BUILDING
 --------
 
-$ cargo +nightly build --release
+Run
+	$ cargo +nightly build --release
 
 The exe will be in ./target/release
 

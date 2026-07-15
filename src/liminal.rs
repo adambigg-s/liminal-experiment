@@ -4,6 +4,7 @@ use std::io;
 use std::io::BufRead;
 use std::range;
 use std::sync;
+use std::thread;
 use std::time;
 
 use crate::application;
@@ -12,6 +13,7 @@ use crate::engine;
 use crate::engine::camera;
 use crate::engine::kinematics;
 use crate::engine::kinematics::Collision;
+use crate::engine::neighbors;
 use crate::engine::player;
 use crate::engine::ray;
 use crate::engine::ray::Cast;
@@ -23,6 +25,7 @@ use crate::render::GfxCamera;
 use crate::render::resource;
 use crate::render::util;
 use crate::terrain;
+use crate::terrain::escape;
 use crate::visual::atlas;
 use crate::visual::pipelines;
 use crate::world::block;
@@ -85,7 +88,7 @@ impl application::Application for Liminal
                .chunk_height(8)
                .chunk_width(32)
                .build();
-          world.spawn_workers(3);
+          world.spawn_workers(4);
 
           let mut camera = camera::Camera::builder()
                .ar(context.config.width as f32 / context.config.height as f32)
@@ -93,7 +96,6 @@ impl application::Application for Liminal
                .znear(0.1)
                .zfear(500.0)
                .build();
-          camera.inner.position += glam::vec3(0.0, 3.0, 0.0);
           camera.update_rotation(0.1, 0.1, 0.1);
 
           let player = player::PlayerController::builder()
@@ -248,6 +250,10 @@ impl application::Application for Liminal
                log::error!("Nice job! You escaped by finding the 100 almond waters");
                input.request_quit = !input.request_quit;
           }
+          if self.almond_waters > 25 && !self.sounds.tracks.contains_key("rope")
+          {
+               self.sounds.named_sound_attenuated(&mut self.audio, "rope", -9.0);
+          }
 
           if input.consume_key_press("escape")
           {
@@ -307,7 +313,7 @@ impl application::Application for Liminal
                     self.world.modify(hit.position, block::Block::empty());
                     self.almond_waters += 1;
 
-                    if rand::random_bool(0.025)
+                    if rand::random_bool(0.05)
                     {
                          let position = self.camera.inner.position
                               + glam::vec3(
@@ -316,6 +322,9 @@ impl application::Application for Liminal
                                    rand::random_range(-256.0 .. 256.0),
                               );
                          self.smilers.add_smiler(transform::Transform::from_position(position));
+                    }
+                    if rand::random_bool(0.05)
+                    {
                          self.sounds.named_sound_directional(
                               &mut self.audio,
                               "follow",
@@ -323,28 +332,35 @@ impl application::Application for Liminal
                          );
                     }
                }
+               if let Some(hit) = self.world.cast(ray)
+                    && hit.block == block::Block::ExitDoor
+               {
+                    self.sounds.named_sound(&mut self.audio, "unlock");
+                    log::error!("Nice job! You escaped by finding the exit door");
+                    thread::sleep(time::Duration::from_millis(1500));
+                    input.request_quit = !input.request_quit;
+               }
           }
           if input.consume_mouse_right_press()
           {
                self.camera.fov -= 32.0;
-               self.sounds.named_sound(&mut self.audio, "music");
-               let position = self.camera.inner.position
-                    + glam::vec3(
-                         rand::random_range(-256.0 .. 256.0),
-                         rand::random_range(-8.0 .. 8.0),
-                         rand::random_range(-256.0 .. 256.0),
-                    );
-               self.smilers.add_smiler(transform::Transform::from_position(position));
-               self.sounds.named_sound_directional(
-                    &mut self.audio,
-                    "follow",
-                    self.camera.inner.position - self.camera.inner.forward() * 10.0,
-               );
           }
           if input.consume_mouse_right_release()
           {
                self.camera.fov += 32.0;
-               self.sounds.named_sound_stop("music");
+          }
+
+          for (dx, dz) in neighbors::moore2()
+          {
+               let coord = self.world.center_chunk + glam::ivec3(dx, 0, dz);
+               let biome = self.world.terrain.classify_chunk(coord);
+               if biome.as_any().is::<escape::Escape>()
+                    && !self.sounds.tracks.contains_key("music")
+                    && ((coord.y * self.world.chunk_height as i32) > 32
+                         || (coord.y * self.world.chunk_height as i32) < -128)
+               {
+                    self.sounds.named_sound(&mut self.audio, "music");
+               }
           }
 
           let mut unadd = Vec::new();
@@ -364,12 +380,12 @@ impl application::Application for Liminal
                self.smilers.unadd_smiler(index);
           }
 
-          if self.frame.tick.is_multiple_of(5000)
+          if self.frame.tick.is_multiple_of(7000)
           {
                self.sounds.named_sound_directional(
                     &mut self.audio,
                     "bulbbreak",
-                    self.camera.inner.position + self.camera.inner.forward() * -10.0,
+                    self.camera.inner.position + self.camera.inner.forward() * -5.0,
                );
           }
 

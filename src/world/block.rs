@@ -40,6 +40,7 @@ pub enum Block
      Corrupt3,
      ExitSign,
      ExitDoor,
+     NotExit,
      BlockCounter,
 }
 
@@ -58,6 +59,7 @@ impl Block
           Block::Corrupt3,
           Block::ExitSign,
           Block::ExitDoor,
+          Block::NotExit,
      ];
      const SPECIAL: [Block; 3] = [Block::Distressed1, Block::Distressed2, Block::Distressed3];
      const CORRUPT: [Block; 3] = [Block::Corrupt1, Block::Corrupt2, Block::Corrupt3];
@@ -89,6 +91,7 @@ impl Block
                | Block::Corrupt3 => "corrupt3",
                | Block::ExitSign => "exitsign",
                | Block::ExitDoor => "door",
+               | Block::NotExit => "notexit",
                | Block::BlockCounter => "",
           }
      }
@@ -101,6 +104,8 @@ impl Block
                | Block::Light => light::Light::new(0),
                | Block::AlmondWater => light::Light::new(0),
                | Block::ExitSign => light::Light::new(0),
+               | Block::ExitDoor => light::Light::new(0),
+               | Block::NotExit => light::Light::new(0),
                | Block::Corrupt1 => light::Light::new(3),
                | Block::Corrupt2 => light::Light::new(3),
                | Block::Corrupt3 => light::Light::new(3),
@@ -123,10 +128,12 @@ impl Block
           match self
           {
                | Block::Light => Some(light::Light::max_light()),
-               | Block::Corrupt1 => Some(light::Light::new(2)),
-               | Block::Corrupt2 => Some(light::Light::new(3)),
-               | Block::Corrupt3 => Some(light::Light::new(4)),
-               | Block::ExitSign => Some(light::Light::new(8)),
+               | Block::Corrupt1 => Some(light::Light::new(5)),
+               | Block::Corrupt2 => Some(light::Light::new(5)),
+               | Block::Corrupt3 => Some(light::Light::new(5)),
+               | Block::ExitSign => Some(light::Light::new(9)),
+               | Block::ExitDoor => Some(light::Light::new(4)),
+               | Block::NotExit => Some(light::Light::new(6)),
                | _ => None,
           }
      }

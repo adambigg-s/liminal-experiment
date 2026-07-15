@@ -49,4 +49,9 @@ impl terrain::BiomeGeneration for SuperLiminal
                }
           }
      }
+
+     fn as_any(&self) -> &dyn std::any::Any
+     {
+          self
+     }
 }

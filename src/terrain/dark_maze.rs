@@ -24,10 +24,10 @@ impl terrain::BiomeGeneration for DarkMaze
           {
                for x in 0 .. size.x
                {
-                    let coord = glam::ivec3(x, size.y - 1, z);
+                    let coord = glam::ivec3(x, 1, z);
                     *chunk.get_mut(coord) = block::Block::wall_block(0.05);
 
-                    let coord = glam::ivec3(x, size.y - 2, z);
+                    let coord = glam::ivec3(x, 0, z);
                     *chunk.get_mut(coord) = block::Block::wall_block(0.05);
 
                     let world_coord = chunk.world_position() + coord;
@@ -38,7 +38,7 @@ impl terrain::BiomeGeneration for DarkMaze
                          *chunk.get_mut(coord) = block::Block::Light
                     }
 
-                    let coord = glam::ivec3(x, 0, z);
+                    let coord = glam::ivec3(x, 2, z);
                     if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.85
                     {
                          *chunk.get_mut(coord) = block::Block::AlmondWater;
@@ -53,7 +53,7 @@ impl terrain::BiomeGeneration for DarkMaze
                          let direction = dir * sign;
                          for delta_length in 0 .. length
                          {
-                              for y in 0 .. size.y
+                              for y in 1 .. size.y
                               {
                                    let coord = (coord + direction * delta_length).with_y(y);
                                    if chunk.check_index(coord)
@@ -82,15 +82,20 @@ impl terrain::BiomeGeneration for DarkMaze
                                         continue;
                                    }
 
-                                   let coord = coord.with_y(size.y - 1);
+                                   let coord = coord.with_y(0);
                                    *chunk.get_mut(coord) = block::Block::Air;
 
-                                   let coord = coord.with_y(size.y - 2);
+                                   let coord = coord.with_y(1);
                                    *chunk.get_mut(coord) = block::Block::Air;
                               }
                          }
                     }
                }
           }
+     }
+
+     fn as_any(&self) -> &dyn std::any::Any
+     {
+          self
      }
 }

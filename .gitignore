@@ -26,3 +26,6 @@ target
 
 # Ignore the game exe
 ./backrooms_liminal.exe
+
+# Profiles
+*.gz

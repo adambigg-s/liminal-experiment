@@ -9,6 +9,7 @@ pub mod pillars;
 pub mod pitfalls;
 pub mod superliminal;
 
+use std::any;
 use std::fmt::Debug;
 
 use crate::world::chunk;
@@ -34,7 +35,7 @@ impl NoiseLayer
 
 pub trait BiomeGeneration
 where
-     Self: Debug + Send + Sync,
+     Self: Debug + Send + Sync + any::Any,
 {
      fn generate(
           &self,
@@ -43,6 +44,8 @@ where
           config: &TerrainConfig,
           deltas: &mut delta::BlockDeltas,
      );
+
+     fn as_any(&self) -> &dyn any::Any;
 }
 
 #[derive(bon::Builder, Debug)]
@@ -82,7 +85,7 @@ impl TerrainGenerator
                .biome_noise(
                     NoiseLayer::builder()
                          .offset(glam::DVec3::splat(0.9207135))
-                         .freq(glam::dvec3(0.25, 0.025, 0.25))
+                         .freq(glam::dvec3(0.25, 0.01, 0.25))
                          .build(),
                )
                .weird_noise(
@@ -139,7 +142,7 @@ impl TerrainGenerator
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .build(),
                BiomePoint::builder()
-                    .biome_center(0.6)
+                    .biome_center(0.3)
                     .weird_center(0.9)
                     .weight(1.5)
                     .generator(Box::new(pitfalls::Pitfalls))
@@ -152,10 +155,16 @@ impl TerrainGenerator
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .build(),
                BiomePoint::builder()
-                    .biome_center(0.0)
-                    .weird_center(1.0)
-                    .weight(2.0)
+                    .biome_center(0.1)
+                    .weird_center(0.0)
+                    .weight(0.2)
                     .generator(Box::new(escape::Escape))
+                    .build(),
+               BiomePoint::builder()
+                    .biome_center(1.1)
+                    .weird_center(1.1)
+                    .weight(3.0)
+                    .generator(Box::new(debugging_biome::DebuggingBiome))
                     .build(),
           ];
 
@@ -167,7 +176,44 @@ impl TerrainGenerator
           }
      }
 
-     pub fn classify(&self, biome: f64, weird: f64) -> &dyn BiomeGeneration
+     pub fn form_chunk(&self, chunk: &mut chunk::Chunk) -> delta::BlockDeltas
+     {
+          let mut outgoing_deltas = delta::BlockDeltas::new();
+
+          self.classify_chunk(chunk.offset()).generate(
+               chunk,
+               &self.noise,
+               &self.config,
+               &mut outgoing_deltas,
+          );
+
+          outgoing_deltas
+     }
+
+     pub fn classify_chunk(&self, chunk_coord: glam::IVec3) -> &dyn BiomeGeneration
+     {
+          let coord = chunk_coord.as_dvec3();
+          let biome = self.config.biome_noise.sample(self.noise, coord);
+          let weird = self.config.weird_noise.sample(self.noise, coord);
+
+          if (-1 ..= 1).contains(&chunk_coord.x) && (-1 ..= 1).contains(&chunk_coord.z)
+          {
+               &escape::Escape
+          }
+          else if (-3 ..= 3).contains(&chunk_coord.x)
+               && (-3 ..= 3).contains(&chunk_coord.z)
+               && (-3 ..= 3).contains(&chunk_coord.y)
+          {
+               &maze::Maze
+               // &parkour::Parkour
+          }
+          else
+          {
+               self.classify(biome, weird)
+          }
+     }
+
+     fn classify(&self, biome: f64, weird: f64) -> &dyn BiomeGeneration
      {
           let sample_point = glam::dvec2(biome, weird);
 
@@ -188,27 +234,5 @@ impl TerrainGenerator
           }
 
           closest.as_ref()
-     }
-
-     pub fn form_chunk(&self, chunk: &mut chunk::Chunk) -> delta::BlockDeltas
-     {
-          let mut outgoing_deltas = delta::BlockDeltas::new();
-
-          let coord = chunk.offset().as_dvec3();
-          let biome = self.config.biome_noise.sample(self.noise, coord);
-          let weird = self.config.weird_noise.sample(self.noise, coord);
-
-          if (-1 ..= 1).contains(&chunk.offset().x) && (-1 ..= 1).contains(&chunk.offset().z)
-          {
-               empty_dark::EmptyDark.generate(chunk, &self.noise, &self.config, &mut outgoing_deltas);
-               // debugging_biome::DebuggingBiome.generate(chunk, &self.noise, &self.config, &mut outgoing_deltas);
-          }
-          else
-          {
-               let biome = self.classify(biome, weird);
-               biome.generate(chunk, &self.noise, &self.config, &mut outgoing_deltas);
-          }
-
-          outgoing_deltas
      }
 }

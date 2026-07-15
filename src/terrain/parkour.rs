@@ -46,11 +46,11 @@ impl terrain::BiomeGeneration for Parkour
                          let coord = glam::ivec3(x, y, z);
 
                          let world_coord = chunk.world_position() + coord;
-                         if config.feature_noise.sample(noise, world_coord.as_dvec3()) > 2.0 / 3.0
+                         if config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.5
                          {
-                              if rand::random_bool(0.005)
+                              if rand::random_bool(0.01)
                               {
-                                   *chunk.get_mut(coord) = block::Block::Light;
+                                   *chunk.get_mut(coord) = block::Block::NotExit;
                               }
                               else
                               {
@@ -69,12 +69,30 @@ impl terrain::BiomeGeneration for Parkour
                     {
                          let coord = glam::ivec3(x, y, z);
                          let neighbors = self.count_neighbors(chunk, x, y, z);
-                         if neighbors > 3
+
+                         if neighbors > 3 || neighbors <= 2
                          {
                               *chunk.get_mut(coord) = block::Block::empty();
+                         }
+
+                         if neighbors == 3 && *chunk.get(coord) == block::Block::empty()
+                         {
+                              if rand::random_bool(0.01)
+                              {
+                                   *chunk.get_mut(coord) = block::Block::Light;
+                              }
+                              else
+                              {
+                                   *chunk.get_mut(coord) = block::Block::corrupt_block(0.25);
+                              }
                          }
                     }
                }
           }
+     }
+
+     fn as_any(&self) -> &dyn std::any::Any
+     {
+          self
      }
 }

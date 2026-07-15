@@ -9,12 +9,12 @@ const FADE_COLOR: vec3<f32> = vec3<f32>(0.005, 0.0, 0.0);
 
 const FOG_EXP: f32 = 1.5;
 const FOG_START: f32 = 25.0;
-const FOG_END: f32 = 125.0;
+const FOG_END: f32 = 100.0;
 
-const FL_END: f32 = 100.0;
-const FL_INNER: f32 = 0.1;
+const FL_END: f32 = 150.0;
+const FL_INNER: f32 = 0.2;
 const FL_OUTER: f32 = 1.5;
-const FL_STRENGTH: f32 = 3.0;
+const FL_STRENGTH: f32 = 5.0;
 
 struct VertexIn {
     @location(0) pos: vec3<f32>,

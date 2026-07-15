@@ -93,7 +93,8 @@ pub struct PlayerSoundController
      pub listener: Option<listener::ListenerHandle>,
 
      pub spatial_tracks: Vec<track::SpatialTrackHandle>,
-     pub tracks: Vec<(static_sound::StaticSoundHandle, &'static str)>,
+     // pub tracks: Vec<(static_sound::StaticSoundHandle, &'static str)>,
+     pub tracks: rh::FxHashMap<&'static str, static_sound::StaticSoundHandle>,
 
      last_sound: usize,
      last_sound_time: f32,
@@ -149,7 +150,8 @@ impl PlayerSoundController
 
           let listener = None;
           let spatial_tracks = Vec::new();
-          let tracks = Vec::new();
+          // let tracks = Vec::new();
+          let tracks = rh::FxHashMap::default();
 
           Ok(Self {
                named_sounds,
@@ -181,7 +183,9 @@ impl PlayerSoundController
      {
           if let Some(sound) = self.named_sounds.get(name)
           {
-               self.tracks.push((audio.play(sound.clone()).unwrap(), name));
+               self.tracks.insert(name, audio.play(sound.clone()).unwrap());
+               // self.tracks.entry(name).or_insert(audio.play(sound.clone()).unwrap());
+               // self.tracks.push((audio.play(sound.clone()).unwrap(), name));
                return;
           }
 
@@ -192,7 +196,9 @@ impl PlayerSoundController
      {
           if let Some(sound) = self.named_sounds.get(name)
           {
-               self.tracks.push((audio.play(sound.clone().volume(db)).unwrap(), name));
+               // self.tracks.push((audio.play(sound.clone().volume(db)).unwrap(), name));
+               self.tracks.insert(name, audio.play(sound.clone().volume(db)).unwrap());
+               // self.tracks.entry(name).or_insert(audio.play(sound.clone()).unwrap());
                return;
           }
 
@@ -201,12 +207,16 @@ impl PlayerSoundController
 
      pub fn named_sound_stop(&mut self, name: &'static str)
      {
-          self.tracks.iter_mut().for_each(|(handle, track_name)| {
-               if *track_name == name
-               {
-                    handle.stop(kira::Tween::default());
-               }
-          });
+          if let Some(mut track) = self.tracks.remove(name)
+          {
+               track.stop(kira::Tween::default());
+          }
+          // self.tracks.iter_mut().for_each(|(handle, track_name)| {
+          //      if *track_name == name
+          //      {
+          //           handle.stop(kira::Tween::default());
+          //      }
+          // });
      }
 
      pub fn named_sound_directional(

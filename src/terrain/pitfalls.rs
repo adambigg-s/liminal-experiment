@@ -37,13 +37,34 @@ impl terrain::BiomeGeneration for Pitfalls
                          continue;
                     }
 
-                    for y in 0 .. size.y
+                    for y in 0 .. size.y + size.y
                     {
                          let coord = glam::ivec3(x, y, z);
 
-                         *chunk.get_mut(coord) = block::Block::Air;
+                         if chunk.check_index(coord)
+                         {
+                              *chunk.get_mut(coord) = block::Block::Air;
+                         }
+                         else
+                         {
+                              let world_coord = chunk.world_position() + coord;
+                              let chunk_world_coord = chunk.chunk_world_coords(world_coord);
+                              let chunk_coord = chunk.to_chunk_coords(world_coord);
+                              deltas.insert(
+                                   chunk_world_coord,
+                                   delta::ChunkDelta {
+                                        coord: chunk_coord,
+                                        delta: block::Block::Air,
+                                   },
+                              );
+                         }
                     }
                }
           }
+     }
+
+     fn as_any(&self) -> &dyn std::any::Any
+     {
+          self
      }
 }

@@ -24,9 +24,10 @@ impl terrain::BiomeGeneration for Pillars
           {
                for x in 0 .. size.x
                {
-                    let coord = glam::ivec3(x, size.y - 1, z);
+                    let coord = glam::ivec3(x, 1, z);
                     *chunk.get_mut(coord) = block::Block::wall_block(0.05);
-                    let coord = glam::ivec3(x, size.y - 2, z);
+
+                    let coord = glam::ivec3(x, 0, z);
                     *chunk.get_mut(coord) = block::Block::wall_block(0.05);
 
                     if x % 4 == 0 && z % 4 == 0
@@ -39,7 +40,7 @@ impl terrain::BiomeGeneration for Pillars
                          continue;
                     }
 
-                    for y in 0 .. size.y - 2
+                    for y in 1 .. size.y
                     {
                          let coord = glam::ivec3(x, y, z);
                          *chunk.get_mut(coord) = block::Block::wall_block(0.005);
@@ -47,4 +48,8 @@ impl terrain::BiomeGeneration for Pillars
                }
           }
      }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+         self
+    }
 }

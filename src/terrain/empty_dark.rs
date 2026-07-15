@@ -24,10 +24,10 @@ impl terrain::BiomeGeneration for EmptyDark
           {
                for x in 0 .. size.x
                {
-                    let coord = glam::ivec3(x, size.y - 1, z);
+                    let coord = glam::ivec3(x, 1, z);
                     *chunk.get_mut(coord) = block::Block::wall_block(0.05);
 
-                    let coord = glam::ivec3(x, size.y - 2, z);
+                    let coord = glam::ivec3(x, 0, z);
                     *chunk.get_mut(coord) = block::Block::wall_block(0.05);
 
                     let world_coord = chunk.world_position() + coord;
@@ -38,7 +38,7 @@ impl terrain::BiomeGeneration for EmptyDark
                          *chunk.get_mut(coord) = block::Block::Light
                     }
 
-                    let coord = glam::ivec3(x, 0, z);
+                    let coord = glam::ivec3(x, 2, z);
                     if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.875
                     {
                          // *chunk.get_mut(coord) = block::Block::ExitSign;
@@ -63,10 +63,10 @@ impl terrain::BiomeGeneration for EmptyDark
                                         continue;
                                    }
 
-                                   let coord = coord.with_y(size.y - 1);
+                                   let coord = coord.with_y(0);
                                    *chunk.get_mut(coord) = block::Block::Air;
 
-                                   let coord = coord.with_y(size.y - 2);
+                                   let coord = coord.with_y(1);
                                    *chunk.get_mut(coord) = block::Block::Air;
                               }
                          }
@@ -74,4 +74,8 @@ impl terrain::BiomeGeneration for EmptyDark
                }
           }
      }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+         self
+    }
 }
