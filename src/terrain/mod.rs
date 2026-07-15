@@ -111,7 +111,7 @@ impl TerrainGenerator
           let biome_map = vec![
                BiomePoint::builder()
                     .biome_center(0.8)
-                    .weird_center(0.4)
+                    .weird_center(0.5)
                     .generator(Box::new(parkour::Parkour))
                     .build(),
                BiomePoint::builder()
@@ -156,8 +156,8 @@ impl TerrainGenerator
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.1)
-                    .weird_center(0.0)
-                    .weight(0.2)
+                    .weird_center(0.1)
+                    .weight(0.5)
                     .generator(Box::new(escape::Escape))
                     .build(),
                BiomePoint::builder()

@@ -39,7 +39,8 @@ impl terrain::BiomeGeneration for DarkMaze
                     }
 
                     let coord = glam::ivec3(x, 2, z);
-                    if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.85
+                    if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.875
+                         && *chunk.get(coord) == block::Block::Air
                     {
                          *chunk.get_mut(coord) = block::Block::AlmondWater;
                     }

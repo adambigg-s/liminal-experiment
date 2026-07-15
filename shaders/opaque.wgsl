@@ -103,7 +103,7 @@ fn fs_main(in: VertexOut) -> FragmentOutput {
     let fl_intensity = max(dot(normal, light_dir), 0.0);
     let fl_diffuse = spot_factor * fl_attenuation * fl_intensity * FL_STRENGTH * flashlight;
     let specular_shape = specular(normal, view_dir, light_dir, 32.0);
-    let specular_intensity = 0.5;
+    let specular_intensity = 0.75;
     let fl_specular = specular_shape * specular_color.rgb * specular_intensity * spot_factor * fl_attenuation * fl_intensity * flashlight;
 
     let face_light = dot(face_normal, normal) * in.fil;

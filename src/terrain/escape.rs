@@ -37,6 +37,10 @@ impl terrain::BiomeGeneration for Escape
                     {
                          if x % 4 == 0 && z % 4 == 0
                          {
+                              if rand::random_bool(0.05)
+                              {
+                                   *chunk.get_mut(coord.with_y(coord.y + 1)) = block::Block::Tape;
+                              }
                               *chunk.get_mut(coord) = block::Block::NotExit;
                          }
                          if rand::random_bool(0.0005)

@@ -40,9 +40,15 @@ impl terrain::BiomeGeneration for Maze
 
                     let coord = glam::ivec3(x, 2, z);
                     if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.875
+                         && *chunk.get(coord) == block::Block::Air
                     {
                          *chunk.get_mut(coord) = block::Block::AlmondWater;
                     }
+                    // if config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.875
+                    //      && *chunk.get(coord) == block::Block::Air
+                    // {
+                    //      *chunk.get_mut(coord) = block::Block::Tape;
+                    // }
 
                     let mut wall_prob = 0.0075;
                     let mut wall_mod = 0;
@@ -52,6 +58,14 @@ impl terrain::BiomeGeneration for Maze
                          *chunk.get_mut(coord) = block::Block::wall_block(0.05);
                          wall_prob += 0.01;
                          wall_mod = 4;
+
+                         let coord = glam::ivec3(x, 3, z);
+                         let world_coord = chunk.world_position() + coord;
+                         if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.875
+                              && *chunk.get(coord) == block::Block::Air
+                         {
+                              *chunk.get_mut(coord) = block::Block::Tape;
+                         }
                     }
 
                     let world_coord = chunk.world_position() + coord;

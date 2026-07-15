@@ -40,6 +40,14 @@ impl terrain::BiomeGeneration for Pillars
                          continue;
                     }
 
+                    let coord = glam::ivec3(x, 2, z);
+                    let world_coord = chunk.world_position() + coord;
+                    if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.9
+                         && *chunk.get(coord) == block::Block::Air
+                    {
+                         *chunk.get_mut(coord) = block::Block::Tape;
+                    }
+
                     for y in 1 .. size.y
                     {
                          let coord = glam::ivec3(x, y, z);
@@ -49,7 +57,8 @@ impl terrain::BiomeGeneration for Pillars
           }
      }
 
-    fn as_any(&self) -> &dyn std::any::Any {
-         self
-    }
+     fn as_any(&self) -> &dyn std::any::Any
+     {
+          self
+     }
 }

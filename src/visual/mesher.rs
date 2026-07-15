@@ -1,8 +1,10 @@
+use std::f32;
 use std::mem;
 
 use wgpu::vertex_attr_array;
 
 use crate::engine::rectilinear;
+use crate::engine::transform;
 use crate::render::{self};
 use crate::visual::atlas;
 use crate::visual::light;
@@ -296,7 +298,18 @@ impl<'c> ChunkMesher<'c>
                               );
                          }
                     }
-                    | block::EmittedMesh::RectilinearPartial => todo!(),
+                    | block::EmittedMesh::RectilinearPartial(transform) =>
+                    {
+                         self.append_partial_block(
+                              &mut vertices,
+                              &mut indices,
+                              world_coord,
+                              coord,
+                              block,
+                              light,
+                              transform,
+                         )
+                    }
                }
           }
           let offset = chunk.offset();
@@ -478,5 +491,59 @@ impl<'c> ChunkMesher<'c>
                     ao: 1.0,
                });
           });
+     }
+
+     #[allow(unused)]
+     #[allow(clippy::too_many_arguments)]
+     fn append_partial_block(
+          &self,
+          vertices: &mut Vec<TerrainVertex>,
+          indices: &mut Vec<u32>,
+          world_coord: glam::IVec3,
+          coord: glam::IVec3,
+          block: block::Block,
+          block_light: f32,
+          transform: transform::Transform,
+     )
+     {
+          let index_shift = vertices.len() as u32;
+          let rotation = glam::Mat3::from_rotation_y(f32::consts::FRAC_PI_3);
+          let mut mesh = rectilinear::RectilinearMesh::unit_cube();
+          mesh.shift(glam::Vec3::splat(-0.5));
+          mesh.scale(transform.scale);
+          mesh.rotate(glam::Mat3::from_quat(transform.rotation));
+          mesh.shift(world_coord.as_vec3());
+          mesh.shift(transform.position + glam::Vec3::splat(0.5));
+
+          // mesh.shift(glam::Vec3::splat(-0.5));
+          // mesh.scale(glam::vec3(0.7, 0.1, 0.3));
+          // mesh.rotate(rotation);
+          // mesh.shift(world_coord.as_vec3());
+          // mesh.shift(glam::vec3(0.5, 0.15 * 0.5, 0.5));
+
+          (0 .. mesh.size).for_each(|index| {
+               let rectilinear::RectilinearMeshSlice {
+                    face,
+                    pos,
+                    uvs,
+                    integer_position,
+                    nor,
+               } = mesh.quad_slice(index);
+
+               self.atlas.conform_uvs(uvs, block.name(), face);
+               (0 .. 4).for_each(|vertex| {
+                    vertices.push(TerrainVertex {
+                         pos: pos[vertex],
+                         nor: rotation * nor[vertex],
+                         tex: uvs[vertex],
+                         fil: block_light,
+                         bil: block_light,
+                         ao: 1.0,
+                    });
+               });
+          });
+
+          // indices.extend_from_slice(&mesh.index.iter().map(|&idx| idx + index_shift));
+          indices.extend(mesh.index.iter().map(|&idx| idx + index_shift));
      }
 }

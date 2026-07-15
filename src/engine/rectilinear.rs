@@ -278,4 +278,11 @@ impl RectilinearMesh
                *pos += shift;
           });
      }
+
+     pub fn rotate(&mut self, rot: glam::Mat3)
+     {
+          self.pos.iter_mut().for_each(|pos| {
+               *pos = rot * *pos;
+          });
+     }
 }

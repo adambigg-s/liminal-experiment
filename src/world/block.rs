@@ -1,7 +1,9 @@
+use std::f32;
 use std::fmt::Display;
 use std::fmt::{self};
 use std::mem;
 
+use crate::engine::transform;
 use crate::visual::light;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -14,13 +16,13 @@ pub enum Visibility
      Transparent,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum EmittedMesh
 {
      #[default]
      RectilinearFull,
-     RectilinearPartial,
      Decorator,
+     RectilinearPartial(transform::Transform),
 }
 
 #[repr(u8)]
@@ -41,6 +43,7 @@ pub enum Block
      ExitSign,
      ExitDoor,
      NotExit,
+     Tape,
      BlockCounter,
 }
 
@@ -60,6 +63,7 @@ impl Block
           Block::ExitSign,
           Block::ExitDoor,
           Block::NotExit,
+          Block::Tape,
      ];
      const SPECIAL: [Block; 3] = [Block::Distressed1, Block::Distressed2, Block::Distressed3];
      const CORRUPT: [Block; 3] = [Block::Corrupt1, Block::Corrupt2, Block::Corrupt3];
@@ -92,6 +96,7 @@ impl Block
                | Block::ExitSign => "exitsign",
                | Block::ExitDoor => "door",
                | Block::NotExit => "notexit",
+               | Block::Tape => "tape",
                | Block::BlockCounter => "",
           }
      }
@@ -109,6 +114,7 @@ impl Block
                | Block::Corrupt1 => light::Light::new(3),
                | Block::Corrupt2 => light::Light::new(3),
                | Block::Corrupt3 => light::Light::new(3),
+               | Block::Tape => light::Light::new(0),
                | _ => light::Light::max_light(),
           }
      }
@@ -119,6 +125,7 @@ impl Block
           {
                | Block::Air => Visibility::Invisible,
                | Block::AlmondWater => Visibility::PartialOpaque,
+               | Block::Tape => Visibility::PartialOpaque,
                | _ => Visibility::Opaque,
           }
      }
@@ -142,7 +149,22 @@ impl Block
      {
           match self
           {
-               | Block::AlmondWater => EmittedMesh::Decorator,
+               | Block::AlmondWater =>
+               {
+                    EmittedMesh::RectilinearPartial(transform::Transform::new(
+                         glam::vec3(0.0, -0.25, 0.0),
+                         glam::Quat::from_mat3(&glam::Mat3::from_rotation_y(f32::consts::FRAC_2_SQRT_PI)),
+                         glam::vec3(0.15, 0.5, 0.15),
+                    ))
+               }
+               | Block::Tape =>
+               {
+                    EmittedMesh::RectilinearPartial(transform::Transform::new(
+                         glam::vec3(0.0, -0.45, 0.0),
+                         glam::Quat::from_mat3(&glam::Mat3::from_rotation_y(f32::consts::FRAC_PI_3)),
+                         glam::vec3(0.7, 0.1, 0.3),
+                    ))
+               }
                | _ => EmittedMesh::RectilinearFull,
           }
      }

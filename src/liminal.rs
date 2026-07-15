@@ -96,11 +96,11 @@ impl application::Application for Liminal
                .znear(0.1)
                .zfear(500.0)
                .build();
-          camera.update_rotation(0.1, 0.1, 0.1);
+          camera.update_rotation(0.25, 0.25, 0.25);
 
           let player = player::PlayerController::builder()
                .lookspeed(0.00125)
-               .movespeed(12.0 * 2f32.powf(3.0))
+               .movespeed(4.0 * 2f32.powf(3.0))
                .kinematics(kinematics::Kinematics::builder().up(glam::Vec3::Y).build())
                .collider(kinematics::BoxCollider::point_sides(
                     camera.inner.position.to_array(),
@@ -309,7 +309,7 @@ impl application::Application for Liminal
                if let Some(hit) = self.world.cast(ray)
                     && hit.block == block::Block::AlmondWater
                {
-                    self.sounds.named_sound(&mut self.audio, "beep");
+                    self.sounds.named_sound_directional(&mut self.audio, "beep", hit.position.as_vec3());
                     self.world.modify(hit.position, block::Block::empty());
                     self.almond_waters += 1;
 
@@ -323,7 +323,7 @@ impl application::Application for Liminal
                               );
                          self.smilers.add_smiler(transform::Transform::from_position(position));
                     }
-                    if rand::random_bool(0.05)
+                    if rand::random_bool(0.025)
                     {
                          self.sounds.named_sound_directional(
                               &mut self.audio,
@@ -340,14 +340,24 @@ impl application::Application for Liminal
                     thread::sleep(time::Duration::from_millis(1500));
                     input.request_quit = !input.request_quit;
                }
+               if let Some(hit) = self.world.cast(ray)
+                    && hit.block == block::Block::Tape
+               {
+                    self.sounds.named_sound_directional(&mut self.audio, "beep", hit.position.as_vec3());
+                    self.world.modify(hit.position, block::Block::empty());
+               }
           }
           if input.consume_mouse_right_press()
           {
                self.camera.fov -= 32.0;
+               self.sounds.named_sound_attenuated(&mut self.audio, "switch_on", -6.0);
+               self.flashlight *= 2.0;
           }
           if input.consume_mouse_right_release()
           {
                self.camera.fov += 32.0;
+               self.sounds.named_sound_attenuated(&mut self.audio, "switch_off", -6.0);
+               self.flashlight /= 2.0;
           }
 
           for (dx, dz) in neighbors::moore2()
@@ -355,11 +365,21 @@ impl application::Application for Liminal
                let coord = self.world.center_chunk + glam::ivec3(dx, 0, dz);
                let biome = self.world.terrain.classify_chunk(coord);
                if biome.as_any().is::<escape::Escape>()
-                    && !self.sounds.tracks.contains_key("music")
+                    && !self.sounds.spatial_tracks.contains_key("music")
                     && ((coord.y * self.world.chunk_height as i32) > 32
                          || (coord.y * self.world.chunk_height as i32) < -128)
                {
-                    self.sounds.named_sound(&mut self.audio, "music");
+                    let world_coord =
+                         coord * glam::ivec3(
+                              self.world.chunk_width as i32,
+                              self.world.chunk_height as i32,
+                              self.world.chunk_width as i32,
+                         ) + glam::ivec3(
+                              self.world.chunk_width as i32 / 2,
+                              self.world.chunk_height as i32 / 2,
+                              self.world.chunk_width as i32 / 2,
+                         );
+                    self.sounds.named_sound_directional(&mut self.audio, "music", world_coord.as_vec3());
                }
           }
 
@@ -380,7 +400,7 @@ impl application::Application for Liminal
                self.smilers.unadd_smiler(index);
           }
 
-          if self.frame.tick.is_multiple_of(7000)
+          if self.frame.tick.is_multiple_of(3000) && rand::random_bool(0.1)
           {
                self.sounds.named_sound_directional(
                     &mut self.audio,
@@ -445,7 +465,7 @@ impl application::Application for Liminal
                     self.player.kinematics.velocity.x += movement.x * frame_movement_speed * self.frame.dt;
                     self.player.kinematics.velocity.z += movement.z * frame_movement_speed * self.frame.dt;
                     self.player.kinematics.apply_gravity(28.0, self.frame.dt);
-                    self.player.kinematics.apply_drag(24.0, self.frame.dt);
+                    self.player.kinematics.apply_drag(8.0, self.frame.dt);
                     self.player.collider =
                          self.player.kinematics.translate(self.player.collider, &self.world, self.frame.dt);
                     self.camera.inner.position = self.player.collider.center()
@@ -499,7 +519,7 @@ impl application::Application for Liminal
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
 
-          // log::info!("FPS: {:.3}", self.frame.dt.recip());
+          log::info!("FPS: {:.3}", self.frame.dt.recip());
      }
 
      fn gfx_frame(

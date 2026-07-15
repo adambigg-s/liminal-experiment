@@ -38,13 +38,21 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 
 fn vhs_vignette(color: vec4<f32>, uv: vec2<f32>) -> vec4<f32> {
-    let uv_shift = uv + sin(uv * time) * 0.025;
+    let wobble_speed = 10.0;
+    let wobble_freq = 20.0;
+    let uv_shift = uv + vec2<f32>(sin(uv.y * wobble_freq + time * wobble_speed) * 0.002, 0.0);
     let dist = distance(uv, vec2<f32>(0.5, 0.5));
 
     let vignette = pow(smoothstep(0.75, 0.1, dist), 2.0);
-    let noise = rand(vec2<f32>(floor(uv_shift.y * 1000.0), uv_shift.x * 1000.0 * time * 0.0025)) - 0.5;
 
-    let final_color = vignette * (color + (noise * 0.25) * length(color.rgb));
+    let freq_x = 800.0;
+    let freq_y = 600.0;
+    let noise_coord = vec2<f32>(uv_shift.x * freq_x + time * 100.0, floor(uv_shift.y * freq_y) + time * 50.0);
+    let noise = rand(noise_coord) - 0.5;
+
+    let noise_strength = 0.5;
+    let noise_attenuation = pow(length(color.rgb), 2);
+    let final_color = vignette * (color + (noise * noise_strength) * noise_attenuation);
 
     return final_color;
 }

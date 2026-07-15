@@ -56,12 +56,12 @@ impl PlayerHeadBobber
      pub fn new() -> Self
      {
           Self {
-               major_freq: f32::consts::PI * 3.0,
-               minor_freq: f32::consts::TAU * 4.0,
+               major_freq: f32::consts::PI * 2.0,
+               minor_freq: f32::consts::TAU * 3.0,
                major_amp: 0.05,
                minor_amp: 0.0125,
                velocity_coeff: 0.25,
-               zero_velocity: 0.05,
+               zero_velocity: 0.1,
           }
      }
 
@@ -76,11 +76,13 @@ impl PlayerHeadBobber
           let (smin, cmin) = (time * self.minor_freq).sin_cos();
           let up = camera.inner.up();
           let right = camera.inner.right();
+          let front = camera.inner.forward();
           let velocity = kinematics.velocity.with_y(0.0).length();
           let wobble_factor = self.velocity_coeff * velocity + self.zero_velocity;
 
           right * (cmaj * self.major_amp + cmin * self.minor_amp) * wobble_factor
                + up * (smaj * self.major_amp + smin * self.minor_amp) * wobble_factor
+               + front * (smin * self.minor_amp + cmin * self.minor_amp) * wobble_factor
      }
 }
 
@@ -92,8 +94,9 @@ pub struct PlayerSoundController
      pub ambience: Option<static_sound::StaticSoundData>,
      pub listener: Option<listener::ListenerHandle>,
 
-     pub spatial_tracks: Vec<track::SpatialTrackHandle>,
+     // pub spatial_tracks: Vec<track::SpatialTrackHandle>,
      // pub tracks: Vec<(static_sound::StaticSoundHandle, &'static str)>,
+     pub spatial_tracks: rh::FxHashMap<&'static str, track::SpatialTrackHandle>,
      pub tracks: rh::FxHashMap<&'static str, static_sound::StaticSoundHandle>,
 
      last_sound: usize,
@@ -149,7 +152,8 @@ impl PlayerSoundController
           }
 
           let listener = None;
-          let spatial_tracks = Vec::new();
+          // let spatial_tracks = Vec::new();
+          let spatial_tracks = rh::FxHashMap::default();
           // let tracks = Vec::new();
           let tracks = rh::FxHashMap::default();
 
@@ -222,18 +226,27 @@ impl PlayerSoundController
      pub fn named_sound_directional(
           &mut self,
           audio: &mut kira::AudioManager,
-          name: &str,
+          name: &'static str,
           location: glam::Vec3,
      )
      {
-          self.spatial_tracks.retain_mut(|track| track.state() != track::TrackPlaybackState::Paused);
+          // self.spatial_tracks.retain_mut(|track| track.state() != track::TrackPlaybackState::Paused);
+          self.spatial_tracks.retain(|_, track| track.state() != track::TrackPlaybackState::Paused);
           if let (Some(sound), Some(listener)) = (self.named_sounds.get(name), self.listener.as_ref())
           {
                let mut track = audio
-                    .add_spatial_sub_track(listener, location, kira::track::SpatialTrackBuilder::default())
+                    .add_spatial_sub_track(
+                         listener,
+                         location,
+                         track::SpatialTrackBuilder::new().distances(track::SpatialTrackDistances {
+                              min_distance: 16.0,
+                              max_distance: 128.0,
+                         }),
+                    )
                     .unwrap();
                track.play(sound.clone()).unwrap();
-               self.spatial_tracks.push(track);
+               // self.spatial_tracks.push(track);
+               self.spatial_tracks.insert(name, track);
                return;
           }
 
@@ -262,4 +275,27 @@ impl PlayerSoundController
                self.last_sound_time = time;
           }
      }
+
+     // pub fn movement(
+     //      &mut self,
+     //      audio: &mut kira::AudioManager,
+     //      kinematics: &kinematics::Kinematics,
+     //      time: f32,
+     // )
+     // {
+     //      let diff = time - self.last_sound_time;
+     //      if diff > self.sound_delay / (self.velocity_coeff * kinematics.velocity.length())
+     //           && !kinematics.flying
+     //      {
+     //           let attenuation = (self.velocity_coeff * kinematics.velocity.length()).powf(2.0);
+     //           audio.play(
+     //                self.walking_sound[self.last_sound % self.walking_sound.len()]
+     //                     .clone()
+     //                     .volume((rand::random_range(-15.0 .. -10.0) + attenuation).min(0.0)),
+     //           )
+     //           .unwrap();
+     //           self.last_sound += 1;
+     //           self.last_sound_time = time;
+     //      }
+     // }
 }
