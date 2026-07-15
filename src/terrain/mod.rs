@@ -113,6 +113,7 @@ impl TerrainGenerator
                     .biome_center(0.8)
                     .weird_center(0.5)
                     .generator(Box::new(parkour::Parkour))
+                    // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.5)
@@ -160,12 +161,12 @@ impl TerrainGenerator
                     .weight(0.5)
                     .generator(Box::new(escape::Escape))
                     .build(),
-               BiomePoint::builder()
-                    .biome_center(1.1)
-                    .weird_center(1.1)
-                    .weight(3.0)
-                    .generator(Box::new(debugging_biome::DebuggingBiome))
-                    .build(),
+               // BiomePoint::builder()
+               //      .biome_center(1.1)
+               //      .weird_center(1.1)
+               //      .weight(3.0)
+               //      .generator(Box::new(debugging_biome::DebuggingBiome))
+               //      .build(),
           ];
 
           Self {
@@ -206,6 +207,7 @@ impl TerrainGenerator
           {
                &maze::Maze
                // &parkour::Parkour
+               // &superliminal::SuperLiminal
           }
           else
           {

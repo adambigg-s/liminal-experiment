@@ -445,7 +445,7 @@ impl<'c> ChunkMesher<'c>
           let bil = quad.block_illumination;
           let ao = quad.ambient_occlusion;
           let mut tex = quad.quad.texture_uvs();
-          self.atlas.conform_uvs(&mut tex, block.name(), face);
+          self.atlas.conform_uvs(&mut tex, block.texture_id(), face);
           indices.extend_from_slice(&quad.indices(vertices.len() as u32));
           (0 .. 4).for_each(|vertex| {
                vertices.push(TerrainVertex {
@@ -479,7 +479,7 @@ impl<'c> ChunkMesher<'c>
           let pos = decorator.positions();
           let nor = decorator.normals();
           let mut tex = decorator.texture_uvs();
-          self.atlas.conform_uvs(&mut tex, block.name(), rectilinear::Face::Front);
+          self.atlas.conform_uvs(&mut tex, block.texture_id(), rectilinear::Face::Front);
           indices.extend_from_slice(&decorator.indices(vertices.len() as u32));
           (0 .. 4).for_each(|vertex| {
                vertices.push(TerrainVertex {
@@ -530,7 +530,7 @@ impl<'c> ChunkMesher<'c>
                     nor,
                } = mesh.quad_slice(index);
 
-               self.atlas.conform_uvs(uvs, block.name(), face);
+               self.atlas.conform_uvs(uvs, block.texture_id(), face);
                (0 .. 4).for_each(|vertex| {
                     vertices.push(TerrainVertex {
                          pos: pos[vertex],

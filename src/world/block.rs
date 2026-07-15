@@ -44,6 +44,10 @@ pub enum Block
      ExitDoor,
      NotExit,
      Tape,
+
+     LiminalCorrupt1,
+     LiminalNotExit,
+
      BlockCounter,
 }
 
@@ -63,10 +67,13 @@ impl Block
           Block::ExitSign,
           Block::ExitDoor,
           Block::NotExit,
+          Block::LiminalCorrupt1,
+          Block::LiminalNotExit,
           Block::Tape,
      ];
      const SPECIAL: [Block; 3] = [Block::Distressed1, Block::Distressed2, Block::Distressed3];
      const CORRUPT: [Block; 3] = [Block::Corrupt1, Block::Corrupt2, Block::Corrupt3];
+     const LIMINAL: [Block; 2] = [Block::LiminalCorrupt1, Block::LiminalNotExit];
      const EMPTY: Block = Block::Air;
 
      pub fn empty() -> Self
@@ -79,7 +86,7 @@ impl Block
           Self::ALL
      }
 
-     pub fn name(&self) -> &'static str
+     pub fn texture_id(&self) -> &'static str
      {
           match self
           {
@@ -97,6 +104,10 @@ impl Block
                | Block::ExitDoor => "door",
                | Block::NotExit => "notexit",
                | Block::Tape => "tape",
+
+               | Block::LiminalCorrupt1 => "corrupt1",
+               | Block::LiminalNotExit => "notexit",
+
                | Block::BlockCounter => "",
           }
      }
@@ -115,6 +126,10 @@ impl Block
                | Block::Corrupt2 => light::Light::new(3),
                | Block::Corrupt3 => light::Light::new(3),
                | Block::Tape => light::Light::new(0),
+
+               | Block::LiminalNotExit => light::Light::new(0),
+               | Block::LiminalCorrupt1 => light::Light::new(0),
+
                | _ => light::Light::max_light(),
           }
      }
@@ -141,6 +156,10 @@ impl Block
                | Block::ExitSign => Some(light::Light::new(9)),
                | Block::ExitDoor => Some(light::Light::new(4)),
                | Block::NotExit => Some(light::Light::new(6)),
+
+               | Block::LiminalNotExit => Some(light::Light::new(6)),
+               | Block::LiminalCorrupt1 => Some(light::Light::new(5)),
+
                | _ => None,
           }
      }
@@ -163,6 +182,32 @@ impl Block
                          glam::vec3(0.0, -0.45, 0.0),
                          glam::Quat::from_mat3(&glam::Mat3::from_rotation_y(f32::consts::FRAC_PI_3)),
                          glam::vec3(0.7, 0.1, 0.3),
+                    ))
+               }
+               | Block::LiminalCorrupt1 =>
+               {
+                    EmittedMesh::RectilinearPartial(transform::Transform::new(
+                         glam::vec3(0.0, 0.0, 0.0),
+                         glam::Quat::from_euler(
+                              glam::EulerRot::XYZ,
+                              rand::random(),
+                              rand::random(),
+                              rand::random(),
+                         ),
+                         glam::Vec3::splat(rand::random_range(0.1 .. 2.5)),
+                    ))
+               }
+               | Block::LiminalNotExit =>
+               {
+                    EmittedMesh::RectilinearPartial(transform::Transform::new(
+                         glam::vec3(0.0, 0.0, 0.0),
+                         glam::Quat::from_euler(
+                              glam::EulerRot::XYZ,
+                              rand::random(),
+                              rand::random(),
+                              rand::random(),
+                         ),
+                         glam::Vec3::splat(rand::random_range(0.1 .. 2.5)),
                     ))
                }
                | _ => EmittedMesh::RectilinearFull,
@@ -195,13 +240,24 @@ impl Block
           let idx = rand::random_range(0 .. Self::CORRUPT.len());
           Self::CORRUPT[idx]
      }
+
+     pub fn liminal_block(special_chance: f64) -> Self
+     {
+          if rand::random_bool(special_chance)
+          {
+               return Self::Plain;
+          }
+
+          let idx = rand::random_range(0 .. Self::LIMINAL.len());
+          Self::LIMINAL[idx]
+     }
 }
 
 impl Display for Block
 {
      fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result
      {
-          write!(fmt, "{}", self.name())
+          write!(fmt, "{}", self.texture_id())
      }
 }
 

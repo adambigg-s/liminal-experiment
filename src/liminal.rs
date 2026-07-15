@@ -97,7 +97,8 @@ impl application::Application for Liminal
                .znear(0.1)
                .zfear(500.0)
                .build();
-          camera.update_rotation(0.25, 0.25, 0.25);
+          camera.yaw += 0.25;
+          camera.pitch += 0.025;
 
           let player = player::PlayerController::builder()
                .lookspeed(0.00125)
