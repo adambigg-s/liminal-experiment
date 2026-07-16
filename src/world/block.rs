@@ -46,7 +46,14 @@ pub enum Block
      Tape,
 
      LiminalCorrupt1,
+     LiminalCorrupt2,
+     LiminalCorrupt3,
      LiminalNotExit,
+
+     LiminalWall1,
+     LiminalWall2,
+     LiminalWall3,
+     LiminalWall4,
 
      BlockCounter,
 }
@@ -68,12 +75,29 @@ impl Block
           Block::ExitDoor,
           Block::NotExit,
           Block::LiminalCorrupt1,
+          Block::LiminalCorrupt2,
+          Block::LiminalCorrupt3,
           Block::LiminalNotExit,
+          Block::LiminalWall1,
+          Block::LiminalWall2,
+          Block::LiminalWall3,
+          Block::LiminalWall4,
           Block::Tape,
      ];
      const SPECIAL: [Block; 3] = [Block::Distressed1, Block::Distressed2, Block::Distressed3];
      const CORRUPT: [Block; 3] = [Block::Corrupt1, Block::Corrupt2, Block::Corrupt3];
-     const LIMINAL: [Block; 2] = [Block::LiminalCorrupt1, Block::LiminalNotExit];
+     const LIMINAL: [Block; 4] = [
+          Block::LiminalCorrupt1,
+          Block::LiminalCorrupt2,
+          Block::LiminalCorrupt3,
+          Block::LiminalNotExit,
+     ];
+     const LIMINAL_WALL: [Block; 4] = [
+          Block::LiminalWall1,
+          Block::LiminalWall2,
+          Block::LiminalWall3,
+          Block::LiminalWall4,
+     ];
      const EMPTY: Block = Block::Air;
 
      pub fn empty() -> Self
@@ -106,7 +130,14 @@ impl Block
                | Block::Tape => "tape",
 
                | Block::LiminalCorrupt1 => "corrupt1",
+               | Block::LiminalCorrupt2 => "corrupt2",
+               | Block::LiminalCorrupt3 => "corrupt3",
                | Block::LiminalNotExit => "notexit",
+
+               | Block::LiminalWall1 => "plain",
+               | Block::LiminalWall2 => "distressed1",
+               | Block::LiminalWall3 => "distressed2",
+               | Block::LiminalWall4 => "distressed3",
 
                | Block::BlockCounter => "",
           }
@@ -129,6 +160,13 @@ impl Block
 
                | Block::LiminalNotExit => light::Light::new(0),
                | Block::LiminalCorrupt1 => light::Light::new(0),
+               | Block::LiminalCorrupt2 => light::Light::new(0),
+               | Block::LiminalCorrupt3 => light::Light::new(0),
+
+               | Block::LiminalWall1 => light::Light::new(0),
+               | Block::LiminalWall2 => light::Light::new(0),
+               | Block::LiminalWall3 => light::Light::new(0),
+               | Block::LiminalWall4 => light::Light::new(0),
 
                | _ => light::Light::max_light(),
           }
@@ -141,6 +179,17 @@ impl Block
                | Block::Air => Visibility::Invisible,
                | Block::AlmondWater => Visibility::PartialOpaque,
                | Block::Tape => Visibility::PartialOpaque,
+
+               | Block::LiminalNotExit => Visibility::PartialOpaque,
+               | Block::LiminalCorrupt1 => Visibility::PartialOpaque,
+               | Block::LiminalCorrupt2 => Visibility::PartialOpaque,
+               | Block::LiminalCorrupt3 => Visibility::PartialOpaque,
+
+               | Block::LiminalWall1 => Visibility::PartialOpaque,
+               | Block::LiminalWall2 => Visibility::PartialOpaque,
+               | Block::LiminalWall3 => Visibility::PartialOpaque,
+               | Block::LiminalWall4 => Visibility::PartialOpaque,
+
                | _ => Visibility::Opaque,
           }
      }
@@ -159,7 +208,13 @@ impl Block
 
                | Block::LiminalNotExit => Some(light::Light::new(6)),
                | Block::LiminalCorrupt1 => Some(light::Light::new(5)),
+               | Block::LiminalCorrupt2 => Some(light::Light::new(5)),
+               | Block::LiminalCorrupt3 => Some(light::Light::new(5)),
 
+               // | Block::LiminalWall1 => Visibility::PartialOpaque,
+               // | Block::LiminalWall2 => Visibility::PartialOpaque,
+               // | Block::LiminalWall3 => Visibility::PartialOpaque,
+               // | Block::LiminalWall4 => Visibility::PartialOpaque,
                | _ => None,
           }
      }
@@ -184,19 +239,9 @@ impl Block
                          glam::vec3(0.7, 0.1, 0.3),
                     ))
                }
-               | Block::LiminalCorrupt1 =>
-               {
-                    EmittedMesh::RectilinearPartial(transform::Transform::new(
-                         glam::vec3(0.0, 0.0, 0.0),
-                         glam::Quat::from_euler(
-                              glam::EulerRot::XYZ,
-                              rand::random(),
-                              rand::random(),
-                              rand::random(),
-                         ),
-                         glam::Vec3::splat(rand::random_range(0.1 .. 2.5)),
-                    ))
-               }
+               | Block::LiminalCorrupt1
+               | Block::LiminalCorrupt2
+               | Block::LiminalCorrupt3
                | Block::LiminalNotExit =>
                {
                     EmittedMesh::RectilinearPartial(transform::Transform::new(
@@ -207,7 +252,20 @@ impl Block
                               rand::random(),
                               rand::random(),
                          ),
-                         glam::Vec3::splat(rand::random_range(0.1 .. 2.5)),
+                         glam::Vec3::splat(rand::random_range(0.25 .. 1.75)),
+                    ))
+               }
+               | Block::LiminalWall1 | Block::LiminalWall2 | Block::LiminalWall3 | Block::LiminalWall4 =>
+               {
+                    EmittedMesh::RectilinearPartial(transform::Transform::new(
+                         glam::vec3(0.0, 0.0, 0.0),
+                         glam::Quat::from_euler(
+                              glam::EulerRot::XYZ,
+                              rand::random_range(-5.0 ..= 5.0) * f32::consts::PI / 180.0,
+                              rand::random_range(-5.0 ..= 5.0) * f32::consts::PI / 180.0,
+                              rand::random_range(-5.0 ..= 5.0) * f32::consts::PI / 180.0,
+                         ),
+                         glam::Vec3::splat(1.0),
                     ))
                }
                | _ => EmittedMesh::RectilinearFull,
@@ -225,6 +283,7 @@ impl Block
           {
                let idx = rand::random_range(0 .. Self::SPECIAL.len());
                return Self::SPECIAL[idx];
+               // return Self::LIMINAL_WALL[idx];
           }
 
           Self::Plain
@@ -250,6 +309,17 @@ impl Block
 
           let idx = rand::random_range(0 .. Self::LIMINAL.len());
           Self::LIMINAL[idx]
+     }
+
+     pub fn liminal_wall(special_chance: f64) -> Self
+     {
+          if rand::random_bool(special_chance)
+          {
+               return Self::Plain;
+          }
+
+          let idx = rand::random_range(0 .. Self::LIMINAL_WALL.len());
+          Self::LIMINAL_WALL[idx]
      }
 }
 

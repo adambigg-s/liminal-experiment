@@ -507,7 +507,6 @@ impl<'c> ChunkMesher<'c>
      )
      {
           let index_shift = vertices.len() as u32;
-          let rotation = glam::Mat3::from_rotation_y(f32::consts::FRAC_PI_3);
           let mut mesh = rectilinear::RectilinearMesh::unit_cube();
           mesh.shift(glam::Vec3::splat(-0.5));
           mesh.scale(transform.scale);
@@ -534,7 +533,7 @@ impl<'c> ChunkMesher<'c>
                (0 .. 4).for_each(|vertex| {
                     vertices.push(TerrainVertex {
                          pos: pos[vertex],
-                         nor: rotation * nor[vertex],
+                         nor: transform.rotation * nor[vertex],
                          tex: uvs[vertex],
                          fil: block_light,
                          bil: block_light,

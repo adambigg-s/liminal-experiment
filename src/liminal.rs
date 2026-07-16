@@ -89,7 +89,7 @@ impl application::Application for Liminal
                .chunk_height(8)
                .chunk_width(32)
                .build();
-          world.spawn_workers(4);
+          world.spawn_workers(3);
 
           let mut camera = camera::Camera::builder()
                .ar(context.config.width as f32 / context.config.height as f32)
@@ -349,7 +349,7 @@ impl application::Application for Liminal
                {
                     self.sounds.named_sound(&mut self.audio, "unlock");
                     log::error!("Nice job! You escaped by finding the exit door");
-                    thread::sleep(time::Duration::from_millis(1500));
+                    thread::sleep(time::Duration::from_millis(2500));
                     input.request_quit = !input.request_quit;
                }
                if let Some(hit) = self.world.cast(ray)
@@ -536,6 +536,10 @@ impl application::Application for Liminal
                * glam::Quat::from_rotation_x(self.camera.pitch);
 
           // log::info!("FPS: {:.3}", self.frame.dt.recip());
+          if self.frame.dt.recip() < 30.0
+          {
+               log::error!("Something is causing low FPS right now, < 30");
+          }
      }
 
      fn gfx_frame(

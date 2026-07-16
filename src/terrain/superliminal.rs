@@ -46,7 +46,7 @@ impl terrain::BiomeGeneration for SuperLiminal
                          //      }
                          // }
 
-                         if rand::random_bool(0.0025)
+                         if rand::random_bool(0.001)
                          {
                               if chunk.check_index(coord)
                               {

@@ -33,13 +33,13 @@ impl terrain::BiomeGeneration for Maze
                     let world_coord = chunk.world_position() + coord;
                     if x % 8 == 0
                          && z % 8 == 0
-                         && config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.1
+                         && config.feature_noise.sample(noise, world_coord.as_dvec3()) > 0.05
                     {
                          *chunk.get_mut(coord) = block::Block::Light
                     }
 
                     let coord = glam::ivec3(x, 2, z);
-                    if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.875
+                    if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.95
                          && *chunk.get(coord) == block::Block::Air
                     {
                          *chunk.get_mut(coord) = block::Block::AlmondWater;
@@ -61,7 +61,7 @@ impl terrain::BiomeGeneration for Maze
 
                          let coord = glam::ivec3(x, 3, z);
                          let world_coord = chunk.world_position() + coord;
-                         if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.875
+                         if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.95
                               && *chunk.get(coord) == block::Block::Air
                          {
                               *chunk.get_mut(coord) = block::Block::Tape;
@@ -83,6 +83,11 @@ impl terrain::BiomeGeneration for Maze
                                    if chunk.check_index(coord)
                                    {
                                         *chunk.get_mut(coord) = block::Block::wall_block(0.01);
+
+                                        if rand::random_bool(0.001)
+                                        {
+                                             *chunk.get_mut(coord) = block::Block::LiminalWall1;
+                                        }
                                    }
                                    else
                                    {

@@ -32,30 +32,49 @@ fn vs_main(@builtin(vertex_index) in: u32) -> VertexOutput {
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let color = textureSample(texture_post, sample_post, in.tex);
-    let final_color = vhs_vignette(color, in.tex);
+    let final_color = static_vignette(color, in.tex, time, in.pos);
 
     return final_color;
 }
 
-fn vhs_vignette(color: vec4<f32>, uv: vec2<f32>) -> vec4<f32> {
-    let wobble_speed = 10.0;
-    let wobble_freq = 20.0;
-    let uv_shift = uv + vec2<f32>(sin(uv.y * wobble_freq + time * wobble_speed) * 0.002, 0.0);
+fn static_vignette(color: vec4<f32>, uv: vec2<f32>, time: f32, frag_pos: vec4<f32>) -> vec4<f32> {
     let dist = distance(uv, vec2<f32>(0.5, 0.5));
-
     let vignette = pow(smoothstep(0.75, 0.1, dist), 2.0);
 
-    let freq_x = 800.0;
-    let freq_y = 600.0;
-    let noise_coord = vec2<f32>(uv_shift.x * freq_x + time * 100.0, floor(uv_shift.y * freq_y) + time * 50.0);
-    let noise = rand(noise_coord) - 0.5;
+    let frag_coord = vec2<u32>(frag_pos.xy);
+    let cluster_coord = frag_coord / 3;
 
-    let noise_strength = 0.5;
+    let noise_coord = vec2<f32>(cluster_coord);
+    let time_offset = vec2<f32>(fract(time * 4324.9301), fract(time * 1903.3945));
+    let noise = rand(noise_coord + time_offset) - 0.5;
+
+    let noise_strength = 1.0 / 3.0;
     let noise_attenuation = pow(length(color.rgb), 2);
+
     let final_color = vignette * (color + (noise * noise_strength) * noise_attenuation);
 
     return final_color;
 }
+
+// fn vhs_vignette(color: vec4<f32>, uv: vec2<f32>) -> vec4<f32> {
+//     let wobble_speed = 100.0;
+//     let wobble_freq = 200.0;
+//     let uv_shift = uv + vec2<f32>(sin(uv.y * wobble_freq + time * wobble_speed) * 0.002, 0.0);
+//     let dist = distance(uv, vec2<f32>(0.5, 0.5));
+
+//     let vignette = pow(smoothstep(0.75, 0.1, dist), 2.0);
+
+//     let freq_x = 800.0;
+//     let freq_y = 600.0;
+//     let noise_coord = vec2<f32>(uv_shift.x * freq_x + time * 1000.0, floor(uv_shift.y * freq_y) + time * 100.0);
+//     let noise = rand(noise_coord) - 0.5;
+
+//     let noise_strength = 0.5;
+//     let noise_attenuation = pow(length(color.rgb), 2);
+//     let final_color = vignette * (color + (noise * noise_strength) * noise_attenuation);
+
+//     return final_color;
+// }
 
 fn rand(coord: vec2<f32>) -> f32 {
     return fract(sin(dot(coord, vec2(12.239325, 78.293723))) * 2394.2343);

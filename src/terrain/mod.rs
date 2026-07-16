@@ -29,8 +29,20 @@ impl NoiseLayer
           Noise: noise::NoiseFn<f64, 2> + noise::NoiseFn<f64, 3>,
      {
           let sample_point = point * self.freq + self.offset;
-          (noise.get(sample_point.to_array()) + 1.0) * 0.5
+          let raw = noise.get(sample_point.to_array());
+          let exponent = 3.0;
+          let shaped = raw.signum() * raw.abs().powf(1.0 / exponent);
+          (shaped + 1.0) * 0.5
+          // (noise.get(sample_point.to_array()) + 1.0) * 0.5
      }
+
+     // pub fn sample<Noise>(&self, noise: Noise, point: glam::DVec3) -> f64
+     // where
+     //      Noise: noise::NoiseFn<f64, 2> + noise::NoiseFn<f64, 3>,
+     // {
+     //      let sample_point = point * self.freq + self.offset;
+     //      (noise.get(sample_point.to_array()) + 1.0) * 0.5
+     // }
 }
 
 pub trait BiomeGeneration
@@ -82,16 +94,28 @@ impl TerrainGenerator
      {
           let noise = noise::Perlin::new(seed);
           let config = TerrainConfig::builder()
+               // .biome_noise(
+               //      NoiseLayer::builder()
+               //           .offset(glam::DVec3::splat(0.9207135))
+               //           .freq(glam::dvec3(0.25, 0.01, 0.25))
+               //           .build(),
+               // )
                .biome_noise(
                     NoiseLayer::builder()
                          .offset(glam::DVec3::splat(0.9207135))
-                         .freq(glam::dvec3(0.25, 0.01, 0.25))
+                         .freq(glam::dvec3(0.11, 0.03, 0.11) * 1.1)
                          .build(),
                )
+               // .weird_noise(
+               //      NoiseLayer::builder()
+               //           .offset(glam::DVec3::splat(-90.18973095))
+               //           .freq(glam::dvec3(1.5, 0.5, 1.5))
+               //           .build(),
+               // )
                .weird_noise(
                     NoiseLayer::builder()
                          .offset(glam::DVec3::splat(-90.18973095))
-                         .freq(glam::dvec3(1.5, 0.5, 1.5))
+                         .freq(glam::dvec3(0.33, 0.05, 0.33) * 1.5)
                          .build(),
                )
                .feature_noise(
@@ -108,65 +132,124 @@ impl TerrainGenerator
                )
                .build();
 
+          // let biome_map = vec![
+          //      BiomePoint::builder()
+          //           .biome_center(0.8)
+          //           .weird_center(0.5)
+          //           .generator(Box::new(parkour::Parkour))
+          //           // .generator(Box::new(debugging_biome::DebuggingBiome))
+          //           .build(),
+          //      BiomePoint::builder()
+          //           .biome_center(0.5)
+          //           .weird_center(0.5)
+          //           .weight(2.0)
+          //           .generator(Box::new(maze::Maze))
+          //           // .generator(Box::new(debugging_biome::DebuggingBiome))
+          //           .build(),
+          //      BiomePoint::builder()
+          //           .biome_center(0.55)
+          //           .weird_center(0.55)
+          //           .weight(0.5)
+          //           .generator(Box::new(dark_maze::DarkMaze))
+          //           // .generator(Box::new(debugging_biome::DebuggingBiome))
+          //           .build(),
+          //      BiomePoint::builder()
+          //           .biome_center(0.65)
+          //           .weird_center(0.65)
+          //           .weight(0.5)
+          //           .generator(Box::new(empty_dark::EmptyDark))
+          //           // .generator(Box::new(debugging_biome::DebuggingBiome))
+          //           .build(),
+          //      BiomePoint::builder()
+          //           .biome_center(0.5)
+          //           .weird_center(0.1)
+          //           .generator(Box::new(pillars::Pillars))
+          //           // .generator(Box::new(debugging_biome::DebuggingBiome))
+          //           .build(),
+          //      BiomePoint::builder()
+          //           .biome_center(0.3)
+          //           .weird_center(0.9)
+          //           .weight(1.5)
+          //           .generator(Box::new(pitfalls::Pitfalls))
+          //           // .generator(Box::new(debugging_biome::DebuggingBiome))
+          //           .build(),
+          //      BiomePoint::builder()
+          //           .biome_center(0.1)
+          //           .weird_center(0.9)
+          //           .generator(Box::new(superliminal::SuperLiminal))
+          //           // .generator(Box::new(debugging_biome::DebuggingBiome))
+          //           .build(),
+          //      BiomePoint::builder()
+          //           .biome_center(0.1)
+          //           .weird_center(0.1)
+          //           .weight(0.5)
+          //           .generator(Box::new(escape::Escape))
+          //           .build(),
+          //      // BiomePoint::builder()
+          //      //      .biome_center(1.1)
+          //      //      .weird_center(1.1)
+          //      //      .weight(3.0)
+          //      //      .generator(Box::new(debugging_biome::DebuggingBiome))
+          //      //      .build(),
+          // ];
+
           let biome_map = vec![
-               BiomePoint::builder()
-                    .biome_center(0.8)
-                    .weird_center(0.5)
-                    .generator(Box::new(parkour::Parkour))
-                    // .generator(Box::new(debugging_biome::DebuggingBiome))
-                    .build(),
                BiomePoint::builder()
                     .biome_center(0.5)
                     .weird_center(0.5)
-                    .weight(2.0)
-                    .generator(Box::new(maze::Maze))
+                    .weight(1.25)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
+                    .generator(Box::new(maze::Maze))
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.55)
-                    .weird_center(0.55)
-                    .weight(0.5)
-                    .generator(Box::new(dark_maze::DarkMaze))
+                    .weird_center(0.45)
+                    .weight(0.75)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
+                    .generator(Box::new(dark_maze::DarkMaze))
                     .build(),
                BiomePoint::builder()
-                    .biome_center(0.65)
-                    .weird_center(0.65)
-                    .weight(0.5)
-                    .generator(Box::new(empty_dark::EmptyDark))
+                    .biome_center(0.45)
+                    .weird_center(0.55)
+                    .weight(0.75)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
+                    .generator(Box::new(empty_dark::EmptyDark))
+                    .build(),
+               BiomePoint::builder()
+                    .biome_center(0.75)
+                    .weird_center(0.5)
+                    .weight(0.5)
+                    // .generator(Box::new(debugging_biome::DebuggingBiome))
+                    .generator(Box::new(parkour::Parkour))
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.5)
-                    .weird_center(0.1)
-                    .generator(Box::new(pillars::Pillars))
-                    // .generator(Box::new(debugging_biome::DebuggingBiome))
-                    .build(),
-               BiomePoint::builder()
-                    .biome_center(0.3)
-                    .weird_center(0.9)
-                    .weight(1.5)
-                    .generator(Box::new(pitfalls::Pitfalls))
-                    // .generator(Box::new(debugging_biome::DebuggingBiome))
-                    .build(),
-               BiomePoint::builder()
-                    .biome_center(0.1)
-                    .weird_center(0.9)
-                    .generator(Box::new(superliminal::SuperLiminal))
-                    // .generator(Box::new(debugging_biome::DebuggingBiome))
-                    .build(),
-               BiomePoint::builder()
-                    .biome_center(0.1)
-                    .weird_center(0.1)
+                    .weird_center(0.25)
                     .weight(0.5)
+                    // .generator(Box::new(debugging_biome::DebuggingBiome))
+                    .generator(Box::new(pillars::Pillars))
+                    .build(),
+               BiomePoint::builder()
+                    .biome_center(0.25)
+                    .weird_center(0.75)
+                    .weight(0.5)
+                    // .generator(Box::new(debugging_biome::DebuggingBiome))
+                    .generator(Box::new(pitfalls::Pitfalls))
+                    .build(),
+               BiomePoint::builder()
+                    .biome_center(0.1)
+                    .weird_center(0.9)
+                    .weight(0.1)
+                    // .generator(Box::new(debugging_biome::DebuggingBiome))
+                    .generator(Box::new(superliminal::SuperLiminal))
+                    .build(),
+               BiomePoint::builder()
+                    .biome_center(0.1)
+                    .weird_center(0.1)
+                    .weight(0.075)
+                    // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .generator(Box::new(escape::Escape))
                     .build(),
-               // BiomePoint::builder()
-               //      .biome_center(1.1)
-               //      .weird_center(1.1)
-               //      .weight(3.0)
-               //      .generator(Box::new(debugging_biome::DebuggingBiome))
-               //      .build(),
           ];
 
           Self {
@@ -231,7 +314,7 @@ impl TerrainGenerator
                if biased < min_distance
                {
                     closest = &point.generator;
-                    min_distance = distance;
+                    min_distance = biased;
                }
           }
 
