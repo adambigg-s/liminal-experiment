@@ -204,7 +204,7 @@ impl TerrainGenerator
                BiomePoint::builder()
                     .biome_center(0.55)
                     .weird_center(0.45)
-                    .weight(0.75)
+                    .weight(1.0)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .generator(Box::new(dark_maze::DarkMaze))
                     .build(),
@@ -218,7 +218,7 @@ impl TerrainGenerator
                BiomePoint::builder()
                     .biome_center(0.75)
                     .weird_center(0.5)
-                    .weight(0.5)
+                    .weight(0.25)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .generator(Box::new(parkour::Parkour))
                     .build(),
@@ -239,7 +239,7 @@ impl TerrainGenerator
                BiomePoint::builder()
                     .biome_center(0.1)
                     .weird_center(0.9)
-                    .weight(0.1)
+                    .weight(0.075)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .generator(Box::new(superliminal::SuperLiminal))
                     .build(),
@@ -280,7 +280,9 @@ impl TerrainGenerator
           let biome = self.config.biome_noise.sample(self.noise, coord);
           let weird = self.config.weird_noise.sample(self.noise, coord);
 
-          if (-1 ..= 1).contains(&chunk_coord.x) && (-1 ..= 1).contains(&chunk_coord.z)
+          if (-1 ..= 1).contains(&chunk_coord.x)
+               && (-1 ..= 1).contains(&chunk_coord.z)
+               && (-1 ..= 1).contains(&chunk_coord.y)
           {
                &escape::Escape
           }

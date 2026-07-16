@@ -29,7 +29,7 @@ pub enum ChunkRequest
      PlaceDecorators
      {
           chunk: sync::Arc<chunk::Chunk>,
-          deltas: Vec<delta::ChunkDelta<block::Block>>,
+          deltas: sync::Arc<Vec<delta::ChunkDelta<block::Block>>>,
      },
      PropagateLighting
      {
@@ -40,7 +40,7 @@ pub enum ChunkRequest
      {
           view: world::ChunkView,
           chunk: sync::Arc<chunk::Chunk>,
-          deltas: Vec<delta::ChunkDelta<light::LightDelta>>,
+          deltas: sync::Arc<Vec<delta::ChunkDelta<light::LightDelta>>>,
      },
      Mesh
      {
@@ -50,6 +50,38 @@ pub enum ChunkRequest
      #[default]
      ShutdownThread,
 }
+
+// #[derive(Debug, Default)]
+// pub enum ChunkRequest
+// {
+//      GenerateTerrain
+//      {
+//           coord: glam::IVec3,
+//      },
+//      PlaceDecorators
+//      {
+//           chunk: sync::Arc<chunk::Chunk>,
+//           deltas: Vec<delta::ChunkDelta<block::Block>>,
+//      },
+//      PropagateLighting
+//      {
+//           view: world::ChunkView,
+//           chunk: sync::Arc<chunk::Chunk>,
+//      },
+//      UpdateLighting
+//      {
+//           view: world::ChunkView,
+//           chunk: sync::Arc<chunk::Chunk>,
+//           deltas: Vec<delta::ChunkDelta<light::LightDelta>>,
+//      },
+//      Mesh
+//      {
+//           view: world::ChunkView,
+//           chunk: sync::Arc<chunk::Chunk>,
+//      },
+//      #[default]
+//      ShutdownThread,
+// }
 
 #[derive(Debug)]
 pub enum ChunkResponse
@@ -659,7 +691,7 @@ impl ChunkManager
                          {
                               let coord = chunk.offset();
                               let chunk_mut = sync::Arc::make_mut(&mut chunk);
-                              deltas.into_iter().for_each(|delta| {
+                              deltas.iter().for_each(|delta| {
                                    *chunk_mut.get_mut(delta.coord) = delta.delta;
                               });
 

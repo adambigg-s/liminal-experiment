@@ -40,7 +40,7 @@ pub struct Liminal
      pub head_bobber: player::PlayerHeadBobber,
      pub sprinter: player::PlayerSprinter,
      pub flashlight: f32,
-     pub almond_waters: i32,
+     pub collected_items: i32,
 
      pub audio: kira::AudioManager,
 
@@ -127,7 +127,7 @@ impl application::Application for Liminal
 
           let flashlight = 0.0;
           let frame = engine::FrameData::new();
-          let almond_waters = 0;
+          let collected_items = 0;
 
           let smilers = smiler::FollowCubeManager::new(&diffuse_atlas, context, render);
 
@@ -240,7 +240,7 @@ impl application::Application for Liminal
                head_bobber,
                sprinter,
                flashlight,
-               almond_waters,
+               collected_items,
 
                audio,
 
@@ -257,12 +257,12 @@ impl application::Application for Liminal
           self.world.update_chunks(self.camera.inner.position, self.frame.dt);
           self.smilers.update(&self.player, self.frame.dt);
 
-          if self.almond_waters > 100
+          if self.collected_items > 100
           {
-               log::error!("Nice job! You escaped by finding the 100 almond waters");
+               log::error!("Nice job! You escaped by finding the 100 collected_items");
                input.request_quit = !input.request_quit;
           }
-          if self.almond_waters > 25 && !self.sounds.tracks.contains_key("rope")
+          if self.collected_items > 25 && !self.sounds.tracks.contains_key("rope")
           {
                self.sounds.named_sound_attenuated(&mut self.audio, "rope", -9.0);
           }
@@ -319,11 +319,11 @@ impl application::Application for Liminal
                     },
                };
                if let Some(hit) = self.world.cast(ray)
-                    && hit.block == block::Block::AlmondWater
+                    && (hit.block == block::Block::AlmondWater || hit.block == block::Block::Tape)
                {
                     self.sounds.named_sound_directional(&mut self.audio, "beep", hit.position.as_vec3());
                     self.world.modify(hit.position, block::Block::empty());
-                    self.almond_waters += 1;
+                    self.collected_items += 1;
 
                     if rand::random_bool(0.05)
                     {
@@ -344,6 +344,7 @@ impl application::Application for Liminal
                          );
                     }
                }
+
                if let Some(hit) = self.world.cast(ray)
                     && hit.block == block::Block::ExitDoor
                {
@@ -351,12 +352,6 @@ impl application::Application for Liminal
                     log::error!("Nice job! You escaped by finding the exit door");
                     thread::sleep(time::Duration::from_millis(2500));
                     input.request_quit = !input.request_quit;
-               }
-               if let Some(hit) = self.world.cast(ray)
-                    && hit.block == block::Block::Tape
-               {
-                    self.sounds.named_sound_directional(&mut self.audio, "beep", hit.position.as_vec3());
-                    self.world.modify(hit.position, block::Block::empty());
                }
           }
           if input.consume_mouse_right_press()
@@ -535,7 +530,7 @@ impl application::Application for Liminal
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
 
-          // log::info!("FPS: {:.3}", self.frame.dt.recip());
+          log::info!("FPS: {:.3}", self.frame.dt.recip());
           if self.frame.dt.recip() < 30.0
           {
                log::error!("Something is causing low FPS right now, < 30");
