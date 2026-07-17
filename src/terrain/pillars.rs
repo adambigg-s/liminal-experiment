@@ -36,7 +36,7 @@ impl terrain::BiomeGeneration for Pillars
                     }
                     let coord = glam::ivec3(x, 2, z);
                     let world_coord = chunk.world_position() + coord;
-                    if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.925
+                    if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.95
                          && *chunk.get(coord) == block::Block::Air
                     {
                          *chunk.get_mut(coord) = block::Block::Tape;

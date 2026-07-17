@@ -38,6 +38,8 @@ pub struct Liminal
      pub player: player::PlayerController,
      pub sounds: player::PlayerSoundController,
      pub head_bobber: player::PlayerHeadBobber,
+     pub camera_zoomer: player::PlayerInterpolator,
+     pub crouch_croucher: player::PlayerInterpolator,
      pub sprinter: player::PlayerSprinter,
      pub flashlight: f32,
      pub collected_items: i32,
@@ -80,11 +82,12 @@ impl application::Application for Liminal
                .map(|val| val.parse::<u32>().unwrap_or(0))
                .unwrap_or(0);
           let terrain = terrain::TerrainGenerator::new(seed);
+          terrain.export_voronoi(256, "./res/voronoi.png")?;
 
           let mut world = manager::ChunkManager::builder()
                .atlas(sync::Arc::clone(&diffuse_atlas))
                .terrain(sync::Arc::new(terrain))
-               .view_distance(256)
+               .view_distance(225)
                .view_coefficient(glam::usizevec3(1, 4, 1))
                .chunk_height(8)
                .chunk_width(32)
@@ -121,6 +124,8 @@ impl application::Application for Liminal
                run_thresh: 40.0,
                exhausted: false,
           };
+          let camera_zoomer = player::PlayerInterpolator::new(camera.fov);
+          let crouch_croucher = player::PlayerInterpolator::new(0.0);
           let mut audio = kira::AudioManager::new(kira::AudioManagerSettings::default())?;
           sounds.ambience(&mut audio);
           sounds.listener = Some(audio.add_listener(glam::Vec3::ZERO, glam::Quat::IDENTITY)?);
@@ -238,6 +243,8 @@ impl application::Application for Liminal
                player,
                sounds,
                head_bobber,
+               camera_zoomer,
+               crouch_croucher,
                sprinter,
                flashlight,
                collected_items,
@@ -257,11 +264,6 @@ impl application::Application for Liminal
           self.world.update_chunks(self.camera.inner.position, self.frame.dt);
           self.smilers.update(&self.player, self.frame.dt);
 
-          if self.collected_items > 100
-          {
-               log::error!("Nice job! You escaped by finding the 100 collected_items");
-               input.request_quit = !input.request_quit;
-          }
           if self.collected_items > 25 && !self.sounds.tracks.contains_key("rope")
           {
                self.sounds.named_sound_attenuated(&mut self.audio, "rope", -9.0);
@@ -386,38 +388,52 @@ impl application::Application for Liminal
           }
           if input.consume_mouse_right_press()
           {
-               self.camera.fov -= 32.0;
+               self.camera_zoomer.set_target(self.camera_zoomer.target - 32.0, 0.1);
                self.sounds.named_sound_attenuated(&mut self.audio, "switch_on", -6.0);
                self.flashlight *= 2.0;
           }
           if input.consume_mouse_right_release()
           {
-               self.camera.fov += 32.0;
+               self.camera_zoomer.set_target(self.camera_zoomer.target + 32.0, 0.1);
                self.sounds.named_sound_attenuated(&mut self.audio, "switch_off", -6.0);
                self.flashlight /= 2.0;
           }
+          self.camera_zoomer.update(self.frame.dt);
+          self.camera.fov = self.camera_zoomer.current;
 
+          let mut stop = true;
           for (dx, dz) in neighbors::moore2()
           {
                let coord = self.world.center_chunk + glam::ivec3(dx, 0, dz);
                let biome = self.world.terrain.classify_chunk(coord);
                if biome.as_any().is::<escape::Escape>()
-                    && !self.sounds.spatial_tracks.contains_key("music")
-                    && ((coord.y * self.world.chunk_height as i32) > 32
-                         || (coord.y * self.world.chunk_height as i32) < -128)
                {
-                    let world_coord =
-                         coord * glam::ivec3(
-                              self.world.chunk_width as i32,
-                              self.world.chunk_height as i32,
-                              self.world.chunk_width as i32,
-                         ) + glam::ivec3(
-                              self.world.chunk_width as i32 / 2,
-                              self.world.chunk_height as i32 / 2,
-                              self.world.chunk_width as i32 / 2,
-                         );
-                    self.sounds.named_sound_directional(&mut self.audio, "music", world_coord.as_vec3());
+                    if !self.sounds.spatial_tracks.contains_key("music")
+                         && ((coord.y * self.world.chunk_height as i32) > 32
+                              || (coord.y * self.world.chunk_height as i32) < -128)
+                    {
+                         let world_coord =
+                              coord * glam::ivec3(
+                                   self.world.chunk_width as i32,
+                                   self.world.chunk_height as i32,
+                                   self.world.chunk_width as i32,
+                              ) + glam::ivec3(
+                                   self.world.chunk_width as i32 / 2,
+                                   self.world.chunk_height as i32 / 2,
+                                   self.world.chunk_width as i32 / 2,
+                              );
+                         self.sounds.named_sound_directional(&mut self.audio, "music", world_coord.as_vec3());
+                    }
+                    stop = false;
                }
+          }
+          if self.world.terrain.classify_chunk(self.world.center_chunk).as_any().is::<escape::Escape>()
+          {
+               stop = false;
+          }
+          if stop
+          {
+               self.sounds.named_sound_directional_stop("music");
           }
 
           let mut unadd = Vec::new();
@@ -455,6 +471,7 @@ impl application::Application for Liminal
           {
                log::error!("No listener configured");
           }
+          self.sounds.purge_tracks();
 
           if self.world.collides(self.player.collider)
           {
@@ -465,7 +482,7 @@ impl application::Application for Liminal
                | true =>
                {
                     let mut frame_movement_speed = self.player.movespeed;
-                    let mut camera_offset = 0.65;
+                    let camera_offset = 0.65;
                     let [mut dx, _, mut dz] = [0.0; 3];
                     if input.get_key_pres("keyw")
                     {
@@ -497,9 +514,15 @@ impl application::Application for Liminal
                     }
                     if input.get_key_pres("controlleft")
                     {
-                         camera_offset /= 2.0;
+                         self.crouch_croucher.set_target(camera_offset / 3.0, 0.1);
                          frame_movement_speed /= 2.0;
                     }
+                    else
+                    {
+                         self.crouch_croucher.set_target(camera_offset, 0.1);
+                    }
+                    self.crouch_croucher.update(self.frame.dt);
+
                     let forward = self.camera.inner.forward().with_y(0.0).normalize_or_zero();
                     let right = self.camera.inner.right().with_y(0.0).normalize_or_zero();
                     let movement = (right * dx + forward * dz).normalize_or_zero();
@@ -510,7 +533,7 @@ impl application::Application for Liminal
                     self.player.collider =
                          self.player.kinematics.translate(self.player.collider, &self.world, self.frame.dt);
                     self.camera.inner.position = self.player.collider.center()
-                         + glam::vec3(0.0, camera_offset, 0.0)
+                         + glam::vec3(0.0, self.crouch_croucher.current, 0.0)
                          + self.head_bobber.head_bob(&self.camera, &self.player.kinematics, self.frame.time);
 
                     self.sounds.movement(&mut self.audio, &self.player.kinematics, self.frame.time);
@@ -560,10 +583,13 @@ impl application::Application for Liminal
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
 
-          // log::info!("FPS: {:.3}", self.frame.dt.recip());
-          if self.frame.dt.recip() < 30.0
+          #[cfg(debug_assertions)]
           {
-               log::error!("Something is causing low FPS right now, < 30");
+               log::info!("FPS: {:.3}", self.frame.dt.recip());
+               if self.frame.dt.recip() < 30.0
+               {
+                    log::error!("Something is causing low FPS right now, < 30");
+               }
           }
      }
 

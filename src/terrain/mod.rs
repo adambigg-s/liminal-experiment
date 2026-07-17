@@ -11,6 +11,9 @@ pub mod superliminal;
 
 use std::any;
 use std::fmt::Debug;
+use std::hash;
+use std::hash::Hash;
+use std::hash::Hasher;
 
 use crate::world::chunk;
 use crate::world::delta;
@@ -102,7 +105,7 @@ impl TerrainGenerator
                // )
                .biome_noise(
                     NoiseLayer::builder()
-                         .offset(glam::DVec3::splat(1.9207135))
+                         .offset(glam::DVec3::splat(-3.9207135))
                          .freq(glam::dvec3(0.11, 0.03, 0.11) * 1.1)
                          .build(),
                )
@@ -114,8 +117,8 @@ impl TerrainGenerator
                // )
                .weird_noise(
                     NoiseLayer::builder()
-                         .offset(glam::DVec3::splat(-98.18973095))
-                         .freq(glam::dvec3(0.33, 0.1, 0.33) * 1.5)
+                         .offset(glam::DVec3::splat(9033.18973095))
+                         .freq(glam::dvec3(0.33, 0.1, 0.33) * 1.75)
                          .build(),
                )
                .feature_noise(
@@ -203,20 +206,20 @@ impl TerrainGenerator
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.55)
-                    .weird_center(0.45)
-                    .weight(1.0)
+                    .weird_center(0.55)
+                    .weight(0.75)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .generator(Box::new(dark_maze::DarkMaze))
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.45)
-                    .weird_center(0.55)
+                    .weird_center(0.45)
                     .weight(0.5)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .generator(Box::new(empty_dark::EmptyDark))
                     .build(),
                BiomePoint::builder()
-                    .biome_center(0.75)
+                    .biome_center(0.25)
                     .weird_center(0.5)
                     .weight(0.25)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
@@ -230,23 +233,23 @@ impl TerrainGenerator
                     .generator(Box::new(pillars::Pillars))
                     .build(),
                BiomePoint::builder()
-                    .biome_center(0.25)
-                    .weird_center(0.75)
+                    .biome_center(0.75)
+                    .weird_center(0.25)
                     .weight(0.5)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .generator(Box::new(pitfalls::Pitfalls))
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.1)
-                    .weird_center(0.9)
-                    .weight(0.075)
+                    .weird_center(0.1)
+                    .weight(0.01)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .generator(Box::new(superliminal::SuperLiminal))
                     .build(),
                BiomePoint::builder()
                     .biome_center(0.1)
-                    .weird_center(0.1)
-                    .weight(0.075)
+                    .weird_center(0.9)
+                    .weight(0.025)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .generator(Box::new(escape::Escape))
                     .build(),
@@ -258,6 +261,37 @@ impl TerrainGenerator
                seed,
                biome_map,
           }
+     }
+
+     pub fn export_voronoi(&self, samples: usize, path: &str) -> anyhow::Result<()>
+     {
+          let mut image = image::ImageBuffer::new(samples as u32, samples as u32);
+
+          for y in 0 .. samples
+          {
+               for x in 0 .. samples
+               {
+                    let biome = x as f64 / samples as f64;
+                    let weird = y as f64 / samples as f64;
+
+                    let biome = self.classify(biome, weird);
+
+                    let type_id = biome.type_id();
+                    let mut hasher = hash::DefaultHasher::new();
+                    type_id.hash(&mut hasher);
+                    let hash = hasher.finish();
+
+                    let r = (hash >> 16) as u8;
+                    let g = (hash >> 8) as u8;
+                    let b = hash as u8;
+
+                    image.put_pixel(x as u32, y as u32, image::Rgb([r, g, b]));
+               }
+          }
+
+          image::DynamicImage::ImageRgb8(image).flipv().save(path)?;
+
+          Ok(())
      }
 
      pub fn form_chunk(&self, chunk: &mut chunk::Chunk) -> delta::BlockDeltas

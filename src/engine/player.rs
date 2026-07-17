@@ -56,8 +56,8 @@ impl PlayerHeadBobber
      pub fn new() -> Self
      {
           Self {
-               major_freq: f32::consts::PI * 2.0,
-               minor_freq: f32::consts::TAU * 3.0,
+               major_freq: f32::consts::PI * 3.0,
+               minor_freq: f32::consts::TAU * 4.0,
                major_amp: 0.05,
                minor_amp: 0.0125,
                velocity_coeff: 0.25,
@@ -76,13 +76,11 @@ impl PlayerHeadBobber
           let (smin, cmin) = (time * self.minor_freq).sin_cos();
           let up = camera.inner.up();
           let right = camera.inner.right();
-          let front = camera.inner.forward();
           let velocity = kinematics.velocity.with_y(0.0).length();
           let wobble_factor = self.velocity_coeff * velocity + self.zero_velocity;
 
           right * (cmaj * self.major_amp + cmin * self.minor_amp) * wobble_factor
                + up * (smaj * self.major_amp + smin * self.minor_amp) * wobble_factor
-               + front * (smin * self.minor_amp + cmin * self.minor_amp) * wobble_factor
      }
 }
 
@@ -172,6 +170,12 @@ impl PlayerSoundController
           })
      }
 
+     pub fn purge_tracks(&mut self)
+     {
+          self.spatial_tracks.retain(|_, track| track.state() != track::TrackPlaybackState::Paused);
+          self.tracks.retain(|_, track| track.state() != kira::sound::PlaybackState::Paused);
+     }
+
      pub fn ambience(&self, audio: &mut kira::AudioManager)
      {
           if let Some(sound) = &self.ambience
@@ -221,6 +225,11 @@ impl PlayerSoundController
           //           handle.stop(kira::Tween::default());
           //      }
           // });
+     }
+
+     pub fn named_sound_directional_stop(&mut self, name: &'static str)
+     {
+          self.spatial_tracks.remove(name);
      }
 
      pub fn named_sound_directional(
@@ -339,5 +348,45 @@ impl PlayerSprinter
 
                1.0
           }
+     }
+}
+
+#[derive(bon::Builder, Debug, Default)]
+pub struct PlayerInterpolator
+{
+     pub current: f32,
+     pub target: f32,
+     pub rate: f32,
+}
+
+impl PlayerInterpolator
+{
+     pub fn new(base: f32) -> Self
+     {
+          Self {
+               current: base,
+               target: base,
+               rate: 0.0,
+          }
+     }
+
+     pub fn set_target(&mut self, target: f32, duration: f32)
+     {
+          self.target = target;
+          self.rate = (target - self.current) / duration;
+     }
+
+     pub fn update(&mut self, dt: f32) -> f32
+     {
+          self.current += self.rate * dt;
+          if self.rate < 0.0
+          {
+               self.current = self.current.max(self.target);
+          }
+          else
+          {
+               self.current = self.current.min(self.target);
+          }
+          self.current
      }
 }

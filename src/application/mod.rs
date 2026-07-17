@@ -76,8 +76,13 @@ pub struct Config
 fn init()
 {
      unsafe {
-          env::set_var("RUST_LOG", "info");
-          env::set_var("RUST_BACKTRACE", "full");
+          env::set_var("RUST_LOG", "warn");
+
+          #[cfg(debug_assertions)]
+          {
+               env::set_var("RUST_BACKTRACE", "full");
+               env::set_var("RUST_LOG", "info");
+          }
      };
      env_logger::init();
      log::warn!("Application started");

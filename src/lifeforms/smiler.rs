@@ -60,7 +60,7 @@ impl FollowCubeManager
      {
           let mut mesh = rectilinear::RectilinearMesh::unit_cube();
           mesh.shift(glam::Vec3::splat(-0.5));
-          mesh.scale(glam::Vec3::splat(1.75));
+          mesh.scale(glam::Vec3::splat(1.25));
 
           let mut vertices = Vec::new();
           (0 .. mesh.size).for_each(|index| {
