@@ -34,18 +34,17 @@ impl terrain::BiomeGeneration for Pillars
                     {
                          *chunk.get_mut(coord) = block::Block::Light;
                     }
+                    let coord = glam::ivec3(x, 2, z);
+                    let world_coord = chunk.world_position() + coord;
+                    if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.925
+                         && *chunk.get(coord) == block::Block::Air
+                    {
+                         *chunk.get_mut(coord) = block::Block::Tape;
+                    }
 
                     if !(x % 8 == 0 && z % 8 == 0)
                     {
                          continue;
-                    }
-
-                    let coord = glam::ivec3(x, 2, z);
-                    let world_coord = chunk.world_position() + coord;
-                    if config.random_noise.sample(noise, world_coord.as_dvec3()) > 0.9
-                         && *chunk.get(coord) == block::Block::Air
-                    {
-                         *chunk.get_mut(coord) = block::Block::Tape;
                     }
 
                     for y in 1 .. size.y

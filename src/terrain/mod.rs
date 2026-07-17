@@ -102,7 +102,7 @@ impl TerrainGenerator
                // )
                .biome_noise(
                     NoiseLayer::builder()
-                         .offset(glam::DVec3::splat(0.9207135))
+                         .offset(glam::DVec3::splat(1.9207135))
                          .freq(glam::dvec3(0.11, 0.03, 0.11) * 1.1)
                          .build(),
                )
@@ -114,20 +114,20 @@ impl TerrainGenerator
                // )
                .weird_noise(
                     NoiseLayer::builder()
-                         .offset(glam::DVec3::splat(-90.18973095))
-                         .freq(glam::dvec3(0.33, 0.05, 0.33) * 1.5)
+                         .offset(glam::DVec3::splat(-98.18973095))
+                         .freq(glam::dvec3(0.33, 0.1, 0.33) * 1.5)
                          .build(),
                )
                .feature_noise(
                     NoiseLayer::builder()
                          .offset(glam::DVec3::splat(-8000.09238427))
-                         .freq(glam::dvec3(0.3, 0.3, 0.3))
+                         .freq(glam::dvec3(0.25, 0.01, 0.25))
                          .build(),
                )
                .random_noise(
                     NoiseLayer::builder()
                          .offset(glam::DVec3::splat(-20202.234234234))
-                         .freq(glam::dvec3(77.77, 77.77, 77.77))
+                         .freq(glam::dvec3(73173.73173, 73173.73173, 73173.73173))
                          .build(),
                )
                .build();
@@ -211,7 +211,7 @@ impl TerrainGenerator
                BiomePoint::builder()
                     .biome_center(0.45)
                     .weird_center(0.55)
-                    .weight(0.75)
+                    .weight(0.5)
                     // .generator(Box::new(debugging_biome::DebuggingBiome))
                     .generator(Box::new(empty_dark::EmptyDark))
                     .build(),

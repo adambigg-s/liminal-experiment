@@ -52,7 +52,7 @@ impl terrain::BiomeGeneration for Maze
 
                     let mut wall_prob = 0.0075;
                     let mut wall_mod = 0;
-                    if config.biome_noise.sample(noise, chunk.world_position().as_dvec3()) > 0.5
+                    if config.feature_noise.sample(noise, chunk.world_position().as_dvec3()) > 0.5
                     {
                          let coord = glam::ivec3(x, 2, z);
                          *chunk.get_mut(coord) = block::Block::wall_block(0.05);

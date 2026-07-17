@@ -318,13 +318,25 @@ impl application::Application for Liminal
                          end: 10.0,
                     },
                };
+               let mut spawn = false;
                if let Some(hit) = self.world.cast(ray)
-                    && (hit.block == block::Block::AlmondWater || hit.block == block::Block::Tape)
+                    && hit.block == block::Block::AlmondWater
+               {
+                    self.sounds.named_sound_directional(&mut self.audio, "item_pick", hit.position.as_vec3());
+                    self.world.modify(hit.position, block::Block::empty());
+                    self.collected_items += 1;
+                    spawn = true;
+               }
+               if let Some(hit) = self.world.cast(ray)
+                    && hit.block == block::Block::Tape
                {
                     self.sounds.named_sound_directional(&mut self.audio, "beep", hit.position.as_vec3());
                     self.world.modify(hit.position, block::Block::empty());
                     self.collected_items += 1;
-
+                    spawn = true;
+               }
+               if spawn
+               {
                     if rand::random_bool(0.05)
                     {
                          let position = self.camera.inner.position
@@ -343,6 +355,24 @@ impl application::Application for Liminal
                               self.camera.inner.position - self.camera.inner.forward() * 10.0,
                          );
                     }
+               }
+               if let Some(hit) = self.world.cast(ray)
+                    && block::Block::LIMINAL_WALL.contains(&hit.block)
+               {
+                    self.sounds.named_sound_directional(&mut self.audio, "close", hit.position.as_vec3());
+                    self.world.modify(hit.position, block::Block::liminal_wall(0.25));
+               }
+               // if let Some(hit) = self.world.cast(ray)
+               //      && block::Block::SPECIAL.contains(&hit.block)
+               // {
+               //      self.sounds.named_sound(&mut self.audio, "close");
+               //      self.world.modify(hit.position, block::Block::liminal_wall(0.1));
+               // }
+               if let Some(hit) = self.world.cast(ray)
+                    && hit.block == block::Block::Light
+               {
+                    self.sounds.named_sound_directional(&mut self.audio, "click", hit.position.as_vec3());
+                    self.world.modify(hit.position, block::Block::empty());
                }
 
                if let Some(hit) = self.world.cast(ray)
@@ -530,7 +560,7 @@ impl application::Application for Liminal
                * glam::Quat::from_rotation_y(self.camera.yaw)
                * glam::Quat::from_rotation_x(self.camera.pitch);
 
-          log::info!("FPS: {:.3}", self.frame.dt.recip());
+          // log::info!("FPS: {:.3}", self.frame.dt.recip());
           if self.frame.dt.recip() < 30.0
           {
                log::error!("Something is causing low FPS right now, < 30");

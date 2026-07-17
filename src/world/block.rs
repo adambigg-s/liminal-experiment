@@ -60,7 +60,7 @@ pub enum Block
 
 impl Block
 {
-     const ALL: [Block; Block::BlockCounter as usize] = [
+     pub const ALL: [Block; Block::BlockCounter as usize] = [
           Block::Air,
           Block::Light,
           Block::AlmondWater,
@@ -84,21 +84,21 @@ impl Block
           Block::LiminalWall4,
           Block::Tape,
      ];
-     const SPECIAL: [Block; 3] = [Block::Distressed1, Block::Distressed2, Block::Distressed3];
-     const CORRUPT: [Block; 3] = [Block::Corrupt1, Block::Corrupt2, Block::Corrupt3];
-     const LIMINAL: [Block; 4] = [
+     pub const SPECIAL: [Block; 3] = [Block::Distressed1, Block::Distressed2, Block::Distressed3];
+     pub const CORRUPT: [Block; 3] = [Block::Corrupt1, Block::Corrupt2, Block::Corrupt3];
+     pub const LIMINAL: [Block; 4] = [
           Block::LiminalCorrupt1,
           Block::LiminalCorrupt2,
           Block::LiminalCorrupt3,
           Block::LiminalNotExit,
      ];
-     const LIMINAL_WALL: [Block; 4] = [
+     pub const LIMINAL_WALL: [Block; 4] = [
           Block::LiminalWall1,
           Block::LiminalWall2,
           Block::LiminalWall3,
           Block::LiminalWall4,
      ];
-     const EMPTY: Block = Block::Air;
+     pub const EMPTY: Block = Block::Air;
 
      pub fn empty() -> Self
      {
@@ -211,10 +211,10 @@ impl Block
                | Block::LiminalCorrupt2 => Some(light::Light::new(5)),
                | Block::LiminalCorrupt3 => Some(light::Light::new(5)),
 
-               // | Block::LiminalWall1 => Visibility::PartialOpaque,
-               // | Block::LiminalWall2 => Visibility::PartialOpaque,
-               // | Block::LiminalWall3 => Visibility::PartialOpaque,
-               // | Block::LiminalWall4 => Visibility::PartialOpaque,
+               | Block::LiminalWall1 => Some(light::Light::new(3)),
+               | Block::LiminalWall2 => Some(light::Light::new(3)),
+               | Block::LiminalWall3 => Some(light::Light::new(3)),
+               | Block::LiminalWall4 => Some(light::Light::new(3)),
                | _ => None,
           }
      }
