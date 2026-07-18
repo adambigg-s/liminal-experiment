@@ -409,8 +409,9 @@ impl application::Application for Liminal
                if biome.as_any().is::<escape::Escape>()
                {
                     if !self.sounds.spatial_tracks.contains_key("music")
-                         && ((coord.y * self.world.chunk_height as i32) > 32
-                              || (coord.y * self.world.chunk_height as i32) < -128)
+                         && !((-3 ..= 3).contains(&coord.x)
+                              && (-3 ..= 3).contains(&coord.z)
+                              && (-3 ..= 3).contains(&coord.y))
                     {
                          let world_coord =
                               coord * glam::ivec3(
@@ -424,6 +425,22 @@ impl application::Application for Liminal
                               );
                          self.sounds.named_sound_directional(&mut self.audio, "music", world_coord.as_vec3());
                     }
+                    // if !self.sounds.spatial_tracks.contains_key("music")
+                    //      && ((coord.y * self.world.chunk_height as i32) > 32
+                    //           || (coord.y * self.world.chunk_height as i32) < -128)
+                    // {
+                    //      let world_coord =
+                    //           coord * glam::ivec3(
+                    //                self.world.chunk_width as i32,
+                    //                self.world.chunk_height as i32,
+                    //                self.world.chunk_width as i32,
+                    //           ) + glam::ivec3(
+                    //                self.world.chunk_width as i32 / 2,
+                    //                self.world.chunk_height as i32 / 2,
+                    //                self.world.chunk_width as i32 / 2,
+                    //           );
+                    //      self.sounds.named_sound_directional(&mut self.audio, "music", world_coord.as_vec3());
+                    // }
                     stop = false;
                }
           }
@@ -442,7 +459,7 @@ impl application::Application for Liminal
                if (smiler.transform.position - self.camera.inner.position).length() < 2.5
                     && (smiler.transform.position - self.camera.inner.position)
                          .dot(self.camera.inner.forward())
-                         > 0.75
+                         > 0.9
                {
                     self.sounds.named_sound_attenuated(&mut self.audio, "puff", 8.0);
                     unadd.push(index);

@@ -27,12 +27,16 @@ impl terrain::BiomeGeneration for Escape
                     let coord = glam::ivec3(x, 0, z);
                     *chunk.get_mut(coord) = block::Block::wall_block(0.5);
 
-                    if chunk.world_position().y > 64 || chunk.world_position().y < -128
+                    let chunk_coord = chunk.offset();
+                    if !((-3 ..= 3).contains(&chunk_coord.x)
+                         && (-3 ..= 3).contains(&chunk_coord.z)
+                         && (-3 ..= 3).contains(&chunk_coord.y))
                     {
                          *chunk.get_mut(glam::ivec3(size.x / 2, 1, size.z / 2)) = block::Block::ExitDoor;
                          *chunk.get_mut(glam::ivec3(size.x / 2, 2, size.z / 2)) = block::Block::ExitDoor;
                          *chunk.get_mut(glam::ivec3(size.x / 2, 3, size.z / 2)) = block::Block::ExitSign;
                     }
+                    // if chunk.world_position().y > 64 || chunk.world_position().y < -128 { }
                     else
                     {
                          if x % 4 == 0 && z % 4 == 0
