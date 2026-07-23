@@ -310,6 +310,9 @@ impl application::Application for Liminal
                }
                self.sounds.named_sound(&mut self.audio, "flashlight");
           }
+          if input.consume_key_press("keyp") {
+               input.request_screenshot = !input.request_screenshot;
+          }
           if input.consume_mouse_left_press()
           {
                let ray = ray::Ray {

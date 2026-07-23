@@ -83,7 +83,7 @@ impl GfxContext
                .unwrap_or(surface_caps.formats[0]);
           log::warn!("Surface format: {:?}", surface_format);
           let config = wgpu::SurfaceConfiguration {
-               usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+               usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
                format: surface_format,
                width: window.inner_size().width,
                height: window.inner_size().height,

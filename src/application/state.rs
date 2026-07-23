@@ -1,4 +1,6 @@
+use std::mem;
 use std::sync;
+use std::sync::mpsc;
 
 use winit::window;
 
@@ -52,8 +54,91 @@ where
           Ok(())
      }
 
-     pub fn screenshot(&self) -> anyhow::Result<()>
+     pub fn screenshot(&self, path: &str) -> anyhow::Result<()>
      {
+          let surface_texture = match self.gfx_context.surface.get_current_texture()
+          {
+               | wgpu::CurrentSurfaceTexture::Timeout
+               | wgpu::CurrentSurfaceTexture::Occluded
+               | wgpu::CurrentSurfaceTexture::Outdated
+               | wgpu::CurrentSurfaceTexture::Validation =>
+               {
+                    anyhow::bail!("Error taking screenshot: surface texture not retrieved");
+               }
+               | wgpu::CurrentSurfaceTexture::Lost =>
+               {
+                    anyhow::bail!("Device lost");
+               }
+               | wgpu::CurrentSurfaceTexture::Success(surface_texture)
+               | wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => surface_texture,
+          };
+
+          let (width, height) = (surface_texture.texture.width(), surface_texture.texture.height());
+
+          let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+          let unpadded = width * mem::size_of::<u32>() as u32;
+          let padding = (align - unpadded % align) % align;
+          let row_padded_size = unpadded + padding;
+
+          let buffer_size = (row_padded_size * height) as u64;
+          let output_buffer = self.gfx_context.device.create_buffer(&wgpu::BufferDescriptor {
+               label: Some("Screenshot output CPU accessible buffer"),
+               size: buffer_size,
+               usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+               mapped_at_creation: false,
+          });
+
+          {
+               let mut encorder =
+                    self.gfx_context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                         label: Some("Screenshot command encoder"),
+                    });
+
+               encorder.copy_texture_to_buffer(
+                    wgpu::TexelCopyTextureInfo {
+                         texture: &surface_texture.texture,
+                         mip_level: 0,
+                         origin: wgpu::Origin3d::ZERO,
+                         aspect: wgpu::TextureAspect::All,
+                    },
+                    wgpu::TexelCopyBufferInfo {
+                         buffer: &output_buffer,
+                         layout: wgpu::TexelCopyBufferLayout {
+                              offset: 0,
+                              bytes_per_row: Some(row_padded_size),
+                              rows_per_image: Some(height),
+                         },
+                    },
+                    surface_texture.texture.size(),
+               );
+
+               self.gfx_context.queue.submit([encorder.finish()]);
+          }
+
+          let buffer_slice = output_buffer.slice(..);
+          let (tx, rx) = mpsc::channel();
+          buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
+               tx.send(result).unwrap();
+          });
+          self.gfx_context.device.poll(wgpu::PollType::wait_indefinitely())?;
+          rx.recv().unwrap().unwrap();
+
+          {
+               let data = buffer_slice.get_mapped_range();
+               let mut raw_pixels = Vec::new();
+               data.chunks(row_padded_size as usize).for_each(|chunk| {
+                    raw_pixels.extend_from_slice(&chunk[.. unpadded as usize]);
+               });
+
+               let image = image::RgbaImage::from_raw(width, height, raw_pixels)
+                    .ok_or(anyhow::anyhow!("Error creating image from wgpu buffer"))?;
+
+               image.save(path)?;
+          };
+
+          output_buffer.unmap();
+          surface_texture.present();
+
           Ok(())
      }
 
